@@ -1,11 +1,11 @@
 import inspect
-from typing import Union, AnyStr, Optional, Any
 # from itertools import islice
 import re
-
 import sys
+from typing import Any, AnyStr, Optional, Union
+
 if sys.version_info.major == 3 and sys.version_info.minor >= 9:
-    from collections.abc import Iterable, Callable, Sequence
+    from collections.abc import Callable, Iterable, Sequence
     Tuple = tuple
     List = list
 
@@ -13,7 +13,7 @@ if sys.version_info.major == 3 and sys.version_info.minor >= 9:
     OrderedDictType = OrderedDict
 
 else:
-    from typing import Iterable, Callable, Tuple, List, Sequence
+    from typing import Callable, Iterable, List, Sequence, Tuple
     if sys.version_info.major == 3 and sys.version_info.minor >= 7:
         OrderedDict = dict
         from typing import Dict as OrderedDictType
@@ -21,11 +21,10 @@ else:
         from collections import OrderedDict
         from typing import OrderedDict as OrderedDictType
 
-from sphinx.util import logging
-from sphinx.util.inspect import signature as Signature
-from sphinx.util.inspect import object_description
-
 from sphinx.application import Sphinx
+from sphinx.util import logging
+from sphinx.util.inspect import object_description
+from sphinx.util.inspect import signature as Signature
 
 logger = logging.getLogger(__name__)
 
@@ -243,9 +242,29 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
         default = ':code:`{}`'.format(object_description(default))
 
         # TODO
+        # should be arguments
         strip = True
         docstring_default_arg_parenthesis = False
 
+        # Search for type
+        type_found, type_start, type_end, type_matched, type_text = match_directive(
+            lines, ':{} {}:'.format('type', argname))
+
+        if type_found:
+            type_text = ' '.join(type_text)
+            if strip:
+                type_text = type_text.rstrip()
+            if not type_text.endswith('optional'):
+                if not type_text.strip():
+                    lines[type_start] = '{} optional'.format(type_matched)
+                else:
+                    lines[type_end - 1] += ', optional'
+        elif app.config.always_document_param_types:
+            next_start = find_next_arg(lines, get_args(obj), argname)
+            lines.insert(
+                next_start, ':type {}: optional'.format(argname))
+
+        # Search for parameters
         # TODO Test case: empty param
         searchfor = [':{} {}:'.format(field, argname)
                      for field in param_fields]
@@ -324,23 +343,6 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
                         argname,
                         app.config.docstring_default_arg_substitution,
                         default))
-
-        type_found, type_start, type_end, type_matched, type_text = match_directive(
-            lines, ':{} {}:'.format('type', argname))
-
-        if type_found:
-            type_text = ' '.join(type_text)
-            if strip:
-                type_text = type_text.rstrip()
-            if not type_text.endswith('optional'):
-                if not type_text.strip():
-                    lines[type_start] = '{} optional'.format(type_matched)
-                else:
-                    lines[type_end - 1] += ', optional'
-        elif app.config.always_document_param_types:
-            next_start = find_next_arg(lines, get_args(obj), argname)
-            lines.insert(
-                next_start, ':type {}: optional'.format(argname))
 
     # try:
     #     # if original_obj.__name__.startswith(
