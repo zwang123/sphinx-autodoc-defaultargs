@@ -1,12 +1,25 @@
 import inspect
-from typing import Union, AnyStr, Optional
+from typing import Union, AnyStr, Optional, Any
+# from itertools import islice
+import re
 
 import sys
 if sys.version_info.major == 3 and sys.version_info.minor >= 9:
-    from collections.abc import Iterable, Callable
+    from collections.abc import Iterable, Callable, Sequence
     Tuple = tuple
+    List = list
+
+    OrderedDict = dict
+    OrderedDictType = OrderedDict
+
 else:
-    from typing import Iterable, Callable, Tuple
+    from typing import Iterable, Callable, Tuple, List, Sequence
+    if sys.version_info.major == 3 and sys.version_info.minor >= 7:
+        OrderedDict = dict
+        from typing import Dict as OrderedDictType
+    else:
+        from collections import OrderedDict
+        from typing import OrderedDict as OrderedDictType
 
 from sphinx.util import logging
 from sphinx.util.inspect import signature as Signature
@@ -16,18 +29,32 @@ from sphinx.application import Sphinx
 
 logger = logging.getLogger(__name__)
 
+param_fields = ('param', 'parameter', 'arg', 'argument')
 
-def get_default_args(func: Callable):
+
+def get_default_args(func: Callable,
+                     for_sphinx: bool = True) -> OrderedDictType[str, Any]:
     signature = Signature(func)
-    return {
-        k: v.default
-        for k, v in signature.parameters.items()
-        if v.default is not inspect.Parameter.empty
-    }
+    # return OrderedDict{
+    #     k: v.default
+    #     for k, v in signature.parameters.items()
+    #     if v.default is not inspect.Parameter.empty
+    # }
+
+    # Backward Compatibility
+    #   The built-in Parameter object is guaranteed
+    #   an ordered mapping in >= 3.5.
+    default_args = OrderedDict()
+    for k, v in signature.parameters.items():
+        if v.default is not inspect.Parameter.empty:
+            if for_sphinx and k.endswith('_'):
+                k = '{}\\_'.format(k[:-1])
+            default_args[k] = v.default
+    return default_args
 
 
 def match_directive(lines: Iterable[AnyStr],
-                    searchfor: Union[AnyStr, Iterable[AnyStr]]
+                    searchfor: Union[AnyStr, Iterable[AnyStr], re.Pattern]
                     ) -> Tuple[bool, int, int,
                                Optional[AnyStr], Optional[AnyStr]]:
     """Find directives in ``lines``."""
@@ -40,7 +67,14 @@ def match_directive(lines: Iterable[AnyStr],
     for i, line in enumerate(lines):
         # Only match once
         if not found:
-            if isinstance(searchfor, str) or isinstance(searchfor, bytes):
+            if isinstance(searchfor, re.Pattern):
+                # Match the **beginning** of ``line``
+                match = searchfor.match(line)
+                if match:
+                    found = True
+                    starting_line_index = i
+                    matched = match.group(0)
+            elif isinstance(searchfor, str) or isinstance(searchfor, bytes):
                 if line.startswith(searchfor):
                     found = True
                     starting_line_index = i
@@ -151,7 +185,35 @@ def rfind_substring_in_paragraph(lines: Iterable[AnyStr],
     return found, is_end, match_start, match_end
 
 
+def get_args(func: Callable, for_sphinx: bool = True) -> List[str]:
+    signature = Signature(func)
+    return ['{}\\_'.format(k[:-1]) if for_sphinx and k.endswith('_')
+            else k for k in signature.parameters]
+
+
+def find_next_arg(
+        lines: Iterable[str], args: Sequence[str],
+        arg: str, template=r':\S+ {}:') -> Optional[int]:
+
+    if arg not in args:
+        return None
+
+    for nextarg in args[args.index(arg) + 1:]:
+        found, start, _, _, _ = match_directive(
+            lines, re.compile(template.format(nextarg)))
+        if found:
+            break
+
+    # Should return len(lines) if nextarg not found
+    return start
+
+
 def process_docstring(app: Sphinx, what, name, obj, options, lines):
+    """Process docstring after Sphinx.
+
+    See `autodoc-process-docstring <https://www.sphinx-doc.org/en/master/
+    usage/extensions/autodoc.html#event-autodoc-process-docstring>`_
+    """
     # original_obj = obj
     if isinstance(obj, property):
         obj = obj.fget
@@ -174,9 +236,8 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
     # except AttributeError:
     #     pass
 
-    for argname, default in get_default_args(obj).items():
-        if argname.endswith('_'):
-            argname = '{}\\_'.format(argname[:-1])
+    default_args = get_default_args(obj)
+    for iter_idx, (argname, default) in enumerate(default_args.items()):
 
         # what if default has \
         default = ':code:`{}`'.format(object_description(default))
@@ -187,9 +248,9 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
 
         # TODO Test case: empty param
         searchfor = [':{} {}:'.format(field, argname)
-                     for field in ('param', 'parameter', 'arg', 'argument')]
-        param_found, param_start_line, param_end_line, param_matched, param_text = match_directive(
-            lines, searchfor)
+                     for field in param_fields]
+        param_found, param_start_line, param_end_line, param_matched, \
+            param_text = match_directive(lines, searchfor)
 
         if param_found:
 
@@ -206,23 +267,24 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
                         head_found, _, head_match_start, head_match_end = \
                             rfind_substring_in_paragraph(
                                 param_text, head, strip,
-                                app.config.docstring_default_arg_flags_multiline_matching)
+                                app.config.
+                                docstring_default_arg_flags_multiline_matching)
                         if head_found:
                             # what if default has \
                             if head_match_end[0] == tail_match_start[0]:
                                 default = param_text[head_match_end[0]
                                                      ][head_match_end[1]:tail_match_start[1]]
                             else:
-                                default = ' '.join([param_text[head_match_end[0]][head_match_end[1]:]] +
-                                                   param_text[head_match_end[0] + 1:tail_match_start[0]] +
-                                                   [param_text[tail_match_start[0]][:tail_match_start[1]]])
+                                default = ' '.join(
+                                    [param_text[head_match_end[0]][head_match_end[1]:]] +
+                                    param_text[head_match_end[0] + 1:tail_match_start[0]] +
+                                    [param_text[tail_match_start[0]][:tail_match_start[1]]])
                             if strip:
                                 default = default.strip()
-                            lines[param_start_line +
-                                  head_match_start[0]] = lines[param_start_line +
-                                                               head_match_start[0]][:len(param_matched) +
-                                                                                    1 +
-                                                                                    head_match_start[1]]
+                            lines[param_start_line + head_match_start[0]] = \
+                                lines[param_start_line + head_match_start[0]
+                                      ][:len(param_matched) + 1 +
+                                        head_match_start[1]]
                             del lines[param_start_line +
                                       head_match_start[0] + 1: param_end_line]
                             param_end_line = param_start_line + \
@@ -243,38 +305,48 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
                     lines[param_end_line - 1] += ' {} {}'.format(
                         app.config.docstring_default_arg_substitution, default)
         elif app.config.always_document_param_types:
+
+            # # Bugged, what if the next args does not have default?
+            # # For example, the ``kwargs``.
+            # for nextargname in islice(default_args, iter_idx + 1, None):
+            #     next_found, next_start, _, _, _ = match_directive(
+            #         lines, re.compile(r':\S+ {}:'.format(nextargname)))
+            #     if next_found:
+            #         break
+            next_start = find_next_arg(lines, get_args(obj), argname)
+
             if docstring_default_arg_parenthesis:
-                # Bugged
-                lines.append(
-                    ':param {}: ({} {})'.format(
-                        argname,
-                        app.config.docstring_default_arg_substitution,
-                        default))
                 raise NotImplementedError
             else:
-                lines.append(
+                lines.insert(
+                    next_start,
                     ':param {}: {} {}'.format(
                         argname,
                         app.config.docstring_default_arg_substitution,
                         default))
 
-        # TODO
-        # Assume type is single line
-        for i, line in enumerate(lines):
-            if line.startswith(':{} {}:'.format('type', argname)):
-                insert_index = i
-                if not line.endswith('optional'):
-                    lines[i] += ', optional'
-                break
+        type_found, type_start, type_end, type_matched, type_text = match_directive(
+            lines, ':{} {}:'.format('type', argname))
 
-        if i == len(lines) and app.config.always_document_param_types:
-            lines.append(':type {}: optional'.format(argname))
-            insert_index = len(lines)
+        if type_found:
+            type_text = ' '.join(type_text)
+            if strip:
+                type_text = type_text.rstrip()
+            if not type_text.endswith('optional'):
+                if not type_text.strip():
+                    lines[type_start] = '{} optional'.format(type_matched)
+                else:
+                    lines[type_end - 1] += ', optional'
+        elif app.config.always_document_param_types:
+            next_start = find_next_arg(lines, get_args(obj), argname)
+            lines.insert(
+                next_start, ':type {}: optional'.format(argname))
 
     # try:
-    #     if original_obj.__name__.startswith(
-    #             'Exception') or original_obj.__name__.endswith('t_object'):
-    #         logger.warning(f'obj {obj}')
+    #     # if original_obj.__name__.startswith(
+    #     #         'Exception') or original_obj.__name__.endswith('t_object'):
+    #     #     logger.warning(f'obj {obj}')
+    #     if True:
     #         for i, line in enumerate(lines):
     #             logger.warning(f'line {i}: {repr(line)}')
     # except AttributeError:
