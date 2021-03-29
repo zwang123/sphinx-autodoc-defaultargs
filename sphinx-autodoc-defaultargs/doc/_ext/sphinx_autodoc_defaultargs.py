@@ -23,7 +23,7 @@ else:
 
 from sphinx.application import Sphinx
 from sphinx.util import logging
-from sphinx.util.inspect import object_description
+from sphinx.util.inspect import object_description, unwrap_all
 from sphinx.util.inspect import signature as Signature
 
 logger = logging.getLogger(__name__)
@@ -198,7 +198,7 @@ def rfind_substring_in_paragraph(lines: Iterable[AnyStr],
 
 
 def get_args(func: Callable, for_sphinx: bool = True) -> List[str]:
-    signature = Signature(func)
+    signature = Signature(unwrap_all(func))
     return ['{}\\_'.format(k[:-1]) if for_sphinx and k.endswith('_')
             else k for k in signature.parameters]
 
