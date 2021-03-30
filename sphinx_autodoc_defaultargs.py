@@ -1,5 +1,13 @@
+"""
+    sphinx-autodoc-defaultargs
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Automatic generation of default arguments
+    for the Sphinx autodoc extension.
+    :copyright: Copyright 2021 by Zhi Wang.
+    :license: MIT, see LICENSE for details.
+"""
+
 import inspect
-# from itertools import islice
 import re
 import sys
 from typing import Any, AnyStr, Optional, Union
@@ -11,7 +19,6 @@ if sys.version_info.major == 3 and sys.version_info.minor >= 9:
 
     OrderedDict = dict
     OrderedDictType = OrderedDict
-
 else:
     from typing import Callable, Collection, Iterable, List, Sequence, Tuple
     if sys.version_info.major == 3 and sys.version_info.minor >= 7:
@@ -134,6 +141,7 @@ def rfind_substring_in_paragraph(lines: Iterable[AnyStr],
         but column follows left inclusive,
         right exclusive convention.
     """
+
     found = False
     is_end = None
     match_start = None
@@ -258,6 +266,7 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
     See `autodoc-process-docstring <https://www.sphinx-doc.org/en/master/
     usage/extensions/autodoc.html#event-autodoc-process-docstring>`_
     """
+
     # original_obj = obj
     if isinstance(obj, property):
         obj = obj.fget
@@ -370,10 +379,6 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
                                 head_match_start[0] + 1
                             break
 
-                # if strip and lines[param_end_line - 1].strip():
-                #     lines[param_end_line - 1] = lines[param_end_line - 1].rstrip()
-                #     # if not lines[param_end_line - 1]:
-                #     #     lines[param_end_line - 1] = ' ' * len(param_matched)
                 if strip:
                     lines[param_end_line - 1] = rstrip_min(
                         lines[param_end_line - 1], len(param_matched) + 1)
