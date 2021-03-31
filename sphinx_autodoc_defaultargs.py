@@ -21,12 +21,13 @@ if sys.version_info.major == 3 and sys.version_info.minor >= 9:
     OrderedDictType = OrderedDict
 else:
     from typing import Callable, Collection, Iterable, List, Sequence, Tuple
+    # typing.OrderedDict is new in Python 3.7.2.
+    # but OrderedDict is a subclass of dict
+    from typing import Dict as OrderedDictType
     if sys.version_info.major == 3 and sys.version_info.minor >= 7:
         OrderedDict = dict
-        from typing import Dict as OrderedDictType
     else:
         from collections import OrderedDict
-        from typing import OrderedDict as OrderedDictType
 
 from sphinx.application import Sphinx
 from sphinx.util import logging
@@ -56,6 +57,7 @@ def match_field(lines: Iterable[AnyStr],
             If False, match ends as soon as an empty line is reached.
             Otherwise, it will keep searching until an nonempty line
             starting with nonwhitespace is reached, or till the end.
+
     Returns:
         ``(found, starting_line_index, ending_line_index,
         matched, text)``.
