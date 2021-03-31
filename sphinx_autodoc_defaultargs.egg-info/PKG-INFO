@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: sphinx-autodoc-defaultargs
-Version: 0.0.post11+dirty
+Version: 0.0.post12+dirty
 Summary: Automatic generation of default arguments for the Sphinx autodoc extension.
 Home-page: UNKNOWN
 Author: Zhi Wang

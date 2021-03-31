@@ -20,10 +20,11 @@ if sys.version_info.major == 3 and sys.version_info.minor >= 9:
     OrderedDict = dict
     OrderedDictType = OrderedDict
 else:
-    from typing import Callable, Collection, Iterable, List, Sequence, Tuple
     # typing.OrderedDict is new in Python 3.7.2.
     # but OrderedDict is a subclass of dict
+    from typing import Callable, Collection
     from typing import Dict as OrderedDictType
+    from typing import Iterable, List, Sequence, Tuple
     if sys.version_info.major == 3 and sys.version_info.minor >= 7:
         OrderedDict = dict
     else:
