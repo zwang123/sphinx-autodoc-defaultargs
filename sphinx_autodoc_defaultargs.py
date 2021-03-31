@@ -319,34 +319,6 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
         strip = app.config.docstring_default_arg_strip_matching
         docstring_default_arg_parenthesis = False
 
-        # Search for type
-        type_found, type_start, type_end, type_matched, type_text = \
-            match_field(lines, ':{} {}:'.format('type', argname),
-                        include_blank=False)
-
-        if type_found:
-            type_text = ' '.join(type_text)
-            if strip:
-                type_text = type_text.rstrip()
-                # lines[type_start:type_end] = [
-                #     rstrip_min(line, len(type_matched) + 1)
-                #     for line in lines[type_start:type_end]]
-                lines[type_end - 1] = rstrip_min(lines[type_end - 1],
-                                                 len(type_matched) + 1)
-            if not type_text.endswith('optional'):
-                if not type_text.strip():
-                    lines[type_start] = '{} optional'.format(type_matched)
-                elif '`' in type_text:
-                    # TODO check \` escape
-                    lines[type_end - 1] += ', *optional*'
-                else:
-                    # Do not insert newline to prevent whitespace before ','
-                    lines[type_end - 1] += ', optional'
-        elif app.config.always_document_param_types:
-            next_start = find_next_arg(lines, get_args(obj), argname)
-            lines.insert(
-                next_start, ':type {}: optional'.format(argname))
-
         # Search for parameters
         # TODO Test case: empty param
         searchfor = [':{} {}:'.format(field, argname)
@@ -422,6 +394,34 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
                         argname,
                         app.config.docstring_default_arg_substitution,
                         default))
+
+        # Search for type
+        type_found, type_start, type_end, type_matched, type_text = \
+            match_field(lines, ':{} {}:'.format('type', argname),
+                        include_blank=False)
+
+        if type_found:
+            type_text = ' '.join(type_text)
+            if strip:
+                type_text = type_text.rstrip()
+                # lines[type_start:type_end] = [
+                #     rstrip_min(line, len(type_matched) + 1)
+                #     for line in lines[type_start:type_end]]
+                lines[type_end - 1] = rstrip_min(lines[type_end - 1],
+                                                 len(type_matched) + 1)
+            if not type_text.endswith('optional'):
+                if not type_text.strip():
+                    lines[type_start] = '{} optional'.format(type_matched)
+                elif '`' in type_text:
+                    # TODO check \` escape
+                    lines[type_end - 1] += ', *optional*'
+                else:
+                    # Do not insert newline to prevent whitespace before ','
+                    lines[type_end - 1] += ', optional'
+        elif param_found or app.config.always_document_param_types:
+            next_start = find_next_arg(lines, get_args(obj), argname)
+            lines.insert(
+                next_start, ':type {}: optional'.format(argname))
 
     # try:
     #     # if original_obj.__name__.startswith(

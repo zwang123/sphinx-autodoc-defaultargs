@@ -1,3 +1,17 @@
+def func(x=None, y=None):
+    """
+    Example docstring.
+
+    :param x: The default value ``None`` will be added here.
+    :param y: The text of default value is unchanged.
+              (Default: ``'Default Value'``)
+    """
+
+    if y is None:
+        y = 'Default Value'
+    pass
+
+
 class TestClass:
     """
     Class docstring.

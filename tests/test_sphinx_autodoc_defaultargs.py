@@ -176,6 +176,20 @@ def test_sphinx_output(app, status, warning, always_document_param_types):
         Dummy Module
         ************
 
+        dummy_module.func(x=None, y=None)
+
+           Example docstring.
+
+           Parameters:
+              * **x** (*optional*) -- The default value "None" will be added
+                here.  "None"
+
+              * **y** (*optional*) --
+
+                The text of default value is unchanged.
+
+                 "'Default Value'"
+
         class dummy_module.TestClass(x=None)
 
            Class docstring.{param_x_t_vNone_ind0}
