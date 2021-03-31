@@ -14,21 +14,22 @@ from typing import Any, AnyStr, Optional, Union
 
 if sys.version_info.major == 3 and sys.version_info.minor >= 9:
     from collections.abc import Callable, Collection, Iterable, Sequence
-    Tuple = tuple
     List = list
-
-    OrderedDict = dict
-    OrderedDictType = OrderedDict
+    OrderedDictType = dict
+    Tuple = tuple
 else:
     # typing.OrderedDict is new in Python 3.7.2.
     # but OrderedDict is a subclass of dict
     from typing import Callable, Collection
     from typing import Dict as OrderedDictType
     from typing import Iterable, List, Sequence, Tuple
-    if sys.version_info.major == 3 and sys.version_info.minor >= 7:
-        OrderedDict = dict
-    else:
-        from collections import OrderedDict
+
+if sys.version_info.major == 3 and sys.version_info.minor >= 7:
+    OrderedDict = dict
+    from re import Pattern
+else:
+    from collections import OrderedDict
+    Pattern = type(re.compile(''))
 
 from sphinx.application import Sphinx
 from sphinx.util import logging
@@ -47,7 +48,7 @@ other_fields = (
 
 
 def match_field(lines: Iterable[AnyStr],
-                searchfor: Union[AnyStr, Iterable[AnyStr], re.Pattern],
+                searchfor: Union[AnyStr, Iterable[AnyStr], Pattern],
                 include_blank: bool = False,
                 ) -> Tuple[bool, int, int,
                            Optional[AnyStr], Optional[AnyStr]]:
@@ -73,7 +74,7 @@ def match_field(lines: Iterable[AnyStr],
     for i, line in enumerate(lines):
         # Only match once
         if not found:
-            if isinstance(searchfor, re.Pattern):
+            if isinstance(searchfor, Pattern):
                 # Match the **beginning** of ``line``
                 match = searchfor.match(line)
                 if match:
