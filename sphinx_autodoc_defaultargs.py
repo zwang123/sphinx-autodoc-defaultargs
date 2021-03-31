@@ -50,8 +50,6 @@ from sphinx.util.inspect import unwrap_all
 logger = logging.getLogger(__name__)
 
 param_fields = ('param', 'parameter', 'arg', 'argument')
-# type_fields = ('type',)
-# all_fields = param_fields + type_fields
 other_fields = (
     'raises', 'raise', 'except', 'exception', 'var', 'ivar', 'cvar',
     'vartype', 'returns', 'return', 'rtype', 'meta', 'key', 'keyword')
@@ -190,36 +188,6 @@ def rfind_substring_in_paragraph(lines: Iterable[AnyStr],
     else:
         raise NotImplementedError
 
-    # # if found:
-    # #     for i, line in lines[starting_line_index: ending_line_index]:
-    # for i in reversed(range(starting_line_index, ending_line_index)):
-    #     line = lines[i]
-
-    #     idx = line.rfind(substr)
-    #     if idx >= 0:
-    #         # found substr
-    #         match_start = (i, idx)
-    #         match_end = (i, idx + len(substr))
-    #     else:
-    #         substr[kk:]
-    #         substr = substr[:kk]
-    # #    if substr in line:
-    # #    text = ' '.join(lines[i].strip() \
-    # #        for i in range(starting_line_index, ending_line_index))
-    # #    if app.config.docstring_default_arg_substitution not in param_text:
-
-    # #        # Extracts all the flags
-    # #        for begins, ends in app.config.docstring_default_arg_flags:
-    # #            if begins in line and line.endswith(ends):
-    # #                idx = line.rfind(begins)
-    # #                # what if default has \
-    # #                default = line[idx + len(begins):-len(ends)]
-    # #                # Remove all trailing whitespaces
-    # #                lines[i] = line[:idx].rstrip()
-    # #                break
-    # #        lines[i] += ' |default| :code:`{}`'.format(default)
-    # #        break
-
     return found, is_end, match_start, match_end
 
 
@@ -297,16 +265,6 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
         # obj = getattr(obj, '__init__')
 
     obj = inspect.unwrap(obj)
-
-    # try:
-    #     # if original_obj.__name__.startswith(
-    #     #         'Exception') or original_obj.__name__.endswith('t_object'):
-    #     #     logger.warning(f'obj {obj}')
-    #     if True:
-    #         for i, line in enumerate(lines):
-    #             logger.warning(f'line {i}: {repr(line)}')
-    # except AttributeError:
-    #     pass
 
     default_args = get_default_args(obj)
     for argname, default in default_args.items():
@@ -404,9 +362,6 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
             type_text = ' '.join(type_text)
             if strip:
                 type_text = type_text.rstrip()
-                # lines[type_start:type_end] = [
-                #     rstrip_min(line, len(type_matched) + 1)
-                #     for line in lines[type_start:type_end]]
                 lines[type_end - 1] = rstrip_min(lines[type_end - 1],
                                                  len(type_matched) + 1)
             if not type_text.endswith('optional'):
@@ -422,16 +377,6 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
             next_start = find_next_arg(lines, get_args(obj), argname)
             lines.insert(
                 next_start, ':type {}: optional'.format(argname))
-
-    # try:
-    #     # if original_obj.__name__.startswith(
-    #     #         'Exception') or original_obj.__name__.endswith('t_object'):
-    #     #     logger.warning(f'obj {obj}')
-    #     if True:
-    #         for i, line in enumerate(lines):
-    #             logger.warning(f'line {i}: {repr(line)}')
-    # except AttributeError:
-    #     pass
 
 
 def setup(app: Sphinx):

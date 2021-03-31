@@ -44,11 +44,3 @@ class TestClass:
         """
 
         return 0
-
-    # def method_with_one_defargs(self, x):
-    #     """
-    #     Method docstring.
-
-    #     """
-
-    #     pass
