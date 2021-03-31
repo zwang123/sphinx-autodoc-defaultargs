@@ -1,0 +1,39 @@
+Metadata-Version: 2.1
+Name: sphinx-autodoc-defaultargs
+Version: 0.0.post8+dirty
+Summary: Automatic generation of default arguments for the Sphinx autodoc extension.
+Home-page: UNKNOWN
+Author: Zhi Wang
+Author-email: zhiwang@uchicago.edu
+License: MIT
+Project-URL: Source code, https://github.com/zwang123/sphinx-autodoc-defaultargs
+Project-URL: Issue tracker, https://github.com/zwang123/sphinx-autodoc-defaultargs/issues
+Description: # sphinx-autodoc-defaultargs
+        
+        ## Overview
+        
+        This extension automatically generates default arguments for the Sphinx autodoc extension.
+        
+        ## Installation and Setup
+        
+        ### Manual Installation
+        
+        Copy the [`sphinx_autodoc_defaultargs.py`](sphinx_autodoc_defaultargs.py) file to the Python package folder.
+        
+Platform: UNKNOWN
+Classifier: Development Status :: 2 - Pre-Alpha
+Classifier: Framework :: Sphinx :: Extension
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Framework :: Sphinx :: Extension
+Classifier: Topic :: Documentation :: Sphinx
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Requires-Python: >=3.6
+Provides-Extra: test
+Provides-Extra: type_comments

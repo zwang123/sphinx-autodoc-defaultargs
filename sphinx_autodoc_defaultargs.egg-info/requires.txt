@@ -1,0 +1,15 @@
+Sphinx>=3.0
+
+[test]
+pytest>=3.1.0
+typing_extensions>=3.5
+sphobjinv>=2.0
+Sphinx>=3.2.0
+
+[test:python_version == "3.6"]
+dataclasses
+
+[type_comments]
+
+[type_comments:python_version < "3.8"]
+typed_ast>=1.4.0

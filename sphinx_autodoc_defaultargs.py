@@ -118,9 +118,7 @@ def rstrip_min(string: AnyStr, min_len: int,
     """:meth:`str.rstrip` but keep first ``min_len`` chars unchanged."""
     str_copy = string
     result = string.rstrip(chars)
-    if len(result) < min_len:
-        result = str_copy[:min_len]
-    return result
+    return str_copy[:min_len] if len(result) < min_len else result
 
 
 def rfind_substring_in_paragraph(lines: Iterable[AnyStr],
@@ -187,7 +185,8 @@ def rfind_substring_in_paragraph(lines: Iterable[AnyStr],
     #         substr[kk:]
     #         substr = substr[:kk]
     # #    if substr in line:
-    # #    text = ' '.join(lines[i].strip() for i in range(starting_line_index, ending_line_index))
+    # #    text = ' '.join(lines[i].strip() \
+    # #        for i in range(starting_line_index, ending_line_index))
     # #    if app.config.docstring_default_arg_substitution not in param_text:
 
     # #        # Extracts all the flags
@@ -345,38 +344,35 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
 
                 # Extracts all the flags
                 for head, tail in app.config.docstring_default_arg_flags:
-                    tail_found, is_end, tail_match_start, _ = \
+                    tail_found, is_end, t_start, _ = \
                         rfind_substring_in_paragraph(
                             param_text, tail, strip,
                             app.config.
                             docstring_default_arg_flags_multiline_matching)
                     if tail_found and is_end:
-                        head_found, _, head_match_start, head_match_end = \
+                        head_found, _, h_start, h_end = \
                             rfind_substring_in_paragraph(
                                 param_text, head, strip,
                                 app.config.
                                 docstring_default_arg_flags_multiline_matching)
                         if head_found:
                             # what if default has \
-                            if head_match_end[0] == tail_match_start[0]:
-                                default = param_text[
-                                    head_match_end[0]][
-                                    head_match_end[1]:tail_match_start[1]]
+                            if h_end[0] == t_start[0]:
+                                default = param_text[h_end[0]
+                                                     ][h_end[1]:t_start[1]]
                             else:
                                 default = ' '.join(
-                                    [param_text[head_match_end[0]][head_match_end[1]:]] +
-                                    param_text[head_match_end[0] + 1:tail_match_start[0]] +
-                                    [param_text[tail_match_start[0]][:tail_match_start[1]]])
+                                    [param_text[h_end[0]][h_end[1]:]] +
+                                    param_text[h_end[0] + 1:t_start[0]] +
+                                    [param_text[t_start[0]][:t_start[1]]])
                             if strip:
                                 default = default.strip()
-                            lines[param_start_line + head_match_start[0]] = \
-                                lines[param_start_line + head_match_start[0]
-                                      ][:len(param_matched) + 1 +
-                                        head_match_start[1]]
+                            lines[param_start_line + h_start[0]] = \
+                                lines[param_start_line + h_start[0]
+                                      ][:len(param_matched) + 1 + h_start[1]]
                             del lines[param_start_line +
-                                      head_match_start[0] + 1: param_end_line]
-                            param_end_line = param_start_line + \
-                                head_match_start[0] + 1
+                                      h_start[0] + 1: param_end_line]
+                            param_end_line = param_start_line + h_start[0] + 1
                             break
 
                 if strip:

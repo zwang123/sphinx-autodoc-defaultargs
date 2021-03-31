@@ -1,0 +1,19 @@
+[build-system]
+requires = [
+    "setuptools >= 40.0.4",
+    "setuptools_scm >= 2.0.0",
+    "wheel >= 0.29.0",
+]
+build-backend = 'setuptools.build_meta'
+
+[tool.isort]
+skip_gitignore = true
+line_length = 79
+multi_line_output = 4
+
+[tool.autopep8]
+max_line_length = 79
+
+[tool.pytest.ini_options]
+addopts = "-rsx --tb=short"
+testpaths = ["tests"]
