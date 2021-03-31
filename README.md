@@ -1,9 +1,10 @@
 # sphinx-autodoc-defaultargs
 
+[![PyPi Version](https://img.shields.io/pypi/v/sphinx-autodoc-defaultargs)](https://pypi.org/project/sphinx-autodoc-defaultargs/)
 [![Build Status](https://github.com/zwang123/sphinx-autodoc-defaultargs/actions/workflows/python-package.yml/badge.svg)](https://github.com/zwang123/sphinx-autodoc-defaultargs/actions/workflows/python-package.yml)
 [![Coverage Status](https://coveralls.io/repos/github/zwang123/sphinx-autodoc-defaultargs/badge.svg?branch=main)](https://coveralls.io/github/zwang123/sphinx-autodoc-defaultargs?branch=main)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Python Versions](https://img.shields.io/badge/python-3.5%20%7C%203.6%20%7C%203.7%20%7C%203.8%20%7C%203.9%20%7C%203.10-informational)](setup.cfg)
+[![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/zwang123/sphinx-autodoc-defaultargs/blob/main/LICENSE)
+[![Python Versions](https://img.shields.io/badge/python-3.5%20%7C%203.6%20%7C%203.7%20%7C%203.8%20%7C%203.9%20%7C%203.10-informational)](https://pypi.org/project/sphinx-autodoc-defaultargs/)
 
 ## Overview
 
@@ -31,11 +32,15 @@ def func(x=None, y=None):
     pass
 ```
 
-## Installation and Setup
+## Installation
 
-### Manual Installation
+### pip
 
-Copy the [`sphinx_autodoc_defaultargs.py`](sphinx_autodoc_defaultargs.py) file to the Python package folder.
+If you use `pip`, you can install the package with:
+
+```bash
+python -m pip install sphinx_autodoc_defaultargs
+```
 
 ### setup.py
 
@@ -45,9 +50,9 @@ In the root directory, run the following command in the terminal.
 python setup.py install
 ```
 
-### pip
+### Manual Installation
 
-Currently not supported.
+Copy the `sphinx_autodoc_defaultargs.py` file to the Python package folder.
 
 ## Usage
 
