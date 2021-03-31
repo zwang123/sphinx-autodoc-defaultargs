@@ -53,7 +53,7 @@ param_fields = ('param', 'parameter', 'arg', 'argument')
 # all_fields = param_fields + type_fields
 other_fields = (
     'raises', 'raise', 'except', 'exception', 'var', 'ivar', 'cvar',
-    'vartype', 'returns', 'return', 'rtype', 'meta')
+    'vartype', 'returns', 'return', 'rtype', 'meta', 'key', 'keyword')
 
 
 def match_field(lines: Iterable[AnyStr],
