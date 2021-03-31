@@ -379,7 +379,7 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
                         ' ' * len(param_matched) + ' {} {}'.format(
                             app.config.docstring_default_arg_substitution,
                             default))
-        elif app.config.always_document_param_types:
+        elif app.config.always_document_default_args:
 
             # Since ``kwargs`` (no default args) might come
             # after ``argname``, it will not be in ``default_args``.
@@ -418,7 +418,7 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
                 else:
                     # Do not insert newline to prevent whitespace before ','
                     lines[type_end - 1] += ', optional'
-        elif param_found or app.config.always_document_param_types:
+        elif param_found or app.config.always_document_default_args:
             next_start = find_next_arg(lines, get_args(obj), argname)
             lines.insert(
                 next_start, ':type {}: optional'.format(argname))
@@ -435,11 +435,7 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
 
 
 def setup(app: Sphinx):
-    try:
-        app.add_config_value('always_document_param_types', False, 'html')
-    except Exception:
-        logger.info(
-            "Config value 'always_document_param_types' already present")
+    app.add_config_value('always_document_default_args', False, 'html')
     app.add_config_value('docstring_default_arg_flags',
                          [('(Default: ', ')')], 'html')
     app.add_config_value(

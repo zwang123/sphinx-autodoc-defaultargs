@@ -70,8 +70,8 @@ Note that it should be loaded after [sphinx.ext.napoleon](http://www.sphinx-doc.
 
 ## Config Options
 
-* `always_document_param_types` (default: `False`):
-If False, do not add type info for undocumented parameters.
+* `always_document_default_args` (default: `False`):
+If False, do not add info of default arguments for undocumented parameters.
 If True, add stub documentation for undocumented parameters
 to be able to add default value and to flag `optional` in the type.
 

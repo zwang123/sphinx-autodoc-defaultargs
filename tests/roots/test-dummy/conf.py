@@ -18,4 +18,11 @@ rst_prolog = """
     <div class="default-value-section">""" + \
     ' <span class="default-value-label">Default:</span>'
 
-always_document_param_types = True
+always_document_default_args = True
+
+# html_theme = "sphinx_rtd_theme"
+#
+#
+# def setup(app):
+#     app.add_css_file('css/custom.css')
+#     # app.add_stylesheet('css/custom.css')

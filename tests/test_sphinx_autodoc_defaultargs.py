@@ -127,16 +127,16 @@ def test_rstrip_min(encoding, string, min_len, result, default_result):
     assert rstrip_min(bstring, min_len) == bdefault_result
 
 
-@pytest.mark.parametrize('always_document_param_types', [True, False])
+@pytest.mark.parametrize('always_document_default_args', [True, False])
 @pytest.mark.sphinx('text', testroot='dummy')
-def test_sphinx_output(app, status, warning, always_document_param_types):
+def test_sphinx_output(app, status, warning, always_document_default_args):
     test_path = pathlib.Path(__file__).parent
 
     # Add test directory to sys.path to allow imports of dummy module.
     if str(test_path) not in sys.path:
         sys.path.insert(0, str(test_path))
 
-    app.config.always_document_param_types = always_document_param_types
+    app.config.always_document_default_args = always_document_default_args
     # app.config.autodoc_mock_imports = ['mailbox']
     app.build()
 
@@ -167,7 +167,7 @@ def test_sphinx_output(app, status, warning, always_document_param_types):
                             '*{}**, *'.format(typename) if typename else ''),
                         ),
             '   ' * indentation_level) \
-            if always_document_param_types else ''
+            if always_document_default_args else ''
 
     text_path = pathlib.Path(app.srcdir) / '_build' / 'text' / 'index.txt'
     with text_path.open('r') as f:
