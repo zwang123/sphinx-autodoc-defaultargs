@@ -8,6 +8,7 @@
 """
 
 import inspect
+import itertools
 import re
 import sys
 from typing import Any, AnyStr, Optional, Union
@@ -60,7 +61,7 @@ def match_field(lines: Iterable[AnyStr],
                 searchfor: Union[AnyStr, Iterable[AnyStr], Pattern],
                 include_blank: bool = False,
                 ) -> Tuple[bool, int, int,
-                           Optional[AnyStr], Optional[AnyStr]]:
+                           Optional[AnyStr], Optional[List[AnyStr]]]:
     """Find fields in ``lines``.
 
     Args:
@@ -76,11 +77,15 @@ def match_field(lines: Iterable[AnyStr],
     """
 
     found = False
-    starting_line_index = len(lines)
+    starting_line_index = None
     ending_line_index = None
     matched = None
     text = None
     for i, line in enumerate(lines):
+        # if line:
+        #     print(line)
+        #     print(line[0])
+        #     print(type(line)(line[0]))
         # Only match once
         if not found:
             if isinstance(searchfor, Pattern):
@@ -97,6 +102,8 @@ def match_field(lines: Iterable[AnyStr],
                     matched = searchfor
             else:
                 for search_string in searchfor:
+                    # print(type(line))
+                    # print(type(search_string))
                     if line.startswith(search_string):
                         found = True
                         starting_line_index = i
@@ -104,13 +111,19 @@ def match_field(lines: Iterable[AnyStr],
                         break
 
         # Found the next item
-        elif line and not line[0].isspace() or not line and not include_blank:
+        # NOTE bytes[0] is not bytes
+        # type(line)(line[0]).isspace() <- bugged
+        # bytes(int) -> \x00 array of length arg
+        elif line and line.lstrip() == line or not line and not include_blank:
             ending_line_index = i
             break
 
     # i is len(lines) - 1 if the loop goes completely
     if ending_line_index is None:
-        ending_line_index = len(lines)  # Set no matter found or not
+        if not found:
+            assert starting_line_index is None
+            starting_line_index = i + 1  # Set no matter found or not
+        ending_line_index = i + 1  # Set no matter found or not
 
     assert (starting_line_index == ending_line_index) == (not found)
 
@@ -118,8 +131,8 @@ def match_field(lines: Iterable[AnyStr],
     # should remove `:...: `
 
     if found:
-        text = [lines[i][len(matched) + 1:]
-                for i in range(starting_line_index, ending_line_index)]
+        text = [line[len(matched) + 1:] for line in itertools.islice(
+            lines, starting_line_index, ending_line_index)]
 
     return found, starting_line_index, ending_line_index, matched, text
 

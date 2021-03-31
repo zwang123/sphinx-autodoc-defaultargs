@@ -1,11 +1,100 @@
 import itertools
 import pathlib
+import re
 import sys
 import textwrap
+from collections import abc
 
 import pytest
+from conftest import MyIterable
 
-from sphinx_autodoc_defaultargs import rstrip_min
+from sphinx_autodoc_defaultargs import match_field, rstrip_min
+
+
+@pytest.mark.parametrize('args', [(), ([],), ((1,),), ((0, 1),), (range(1),)])
+@pytest.mark.parametrize('kwargs', [{}])
+def test_my_iterable(args, kwargs):
+    print(MyIterable, args, kwargs)
+    assert issubclass(MyIterable, abc.Iterable)
+    assert not issubclass(MyIterable, abc.Container)
+    assert not issubclass(MyIterable, abc.Hashable)
+    assert not issubclass(MyIterable, abc.Iterator)
+    assert not issubclass(MyIterable, abc.Sized)
+    assert not issubclass(MyIterable, abc.Callable)
+    assert not issubclass(MyIterable, abc.Collection)
+    assert not issubclass(MyIterable, abc.Sequence)
+    assert not issubclass(MyIterable, abc.Set)
+    assert not issubclass(MyIterable, abc.Mapping)
+    my_iterable = MyIterable(*args, **kwargs)
+    print(my_iterable.contents)
+    assert isinstance(my_iterable, abc.Iterable)
+    for _ in my_iterable:
+        pass
+    [x for x in my_iterable]
+
+    assert my_iterable.contents == tuple(*args, **kwargs)
+
+
+@pytest.mark.parametrize('encoding', ['utf-8'])
+@pytest.mark.parametrize('args, result', [
+    ([':param x:'],
+        [True, 0, 1, ':param x:', '']),
+    ([MyIterable((':param y:', ':parameter y:'))],
+        [True, 1, 3, ':parameter y:', 'foo\nine']),
+    ([':arg a:'],
+        [True, 3, 4, ':arg a:', 'bar']),
+    ([MyIterable((':argument b:', ':arg b:'))],
+        [True, 5, 7, ':argument b:', '\n']),
+    ([MyIterable((':argument b:', ':arg b:')), True],
+        [True, 5, 8, ':argument b:', '\n\n']),
+    ([MyIterable((':argument z:', ':arg z:'))],
+        [False, 10, 10] + [None] * 2),
+    ([':rtype:'],
+        [True, 8, 9, ':rtype:', 'int']),
+])
+def test_match_field(encoding, args, result):
+    lines = MyIterable(textwrap.dedent('''\
+    :param x:
+    :parameter y: foo
+                 line
+    :arg a: bar
+    .. {blank}
+    :argument b:
+    {blank}
+
+    :rtype: int
+    ''').format(blank=' \t\v').split('\n'))
+
+    # print(lines.contents)
+
+    if result[0]:
+        result[-1] = result[-1].split('\n')
+
+    assert match_field(lines, *args) == tuple(result)
+
+    args0 = args[0]
+
+    try:
+        args[0] = re.compile(args[0])
+        assert match_field(lines, *args) == tuple(result)
+    except TypeError:
+        pass
+
+    if result[0]:
+        result[3] = result[3].encode(encoding)
+        result[4] = [r.encode(encoding) for r in result[4]]
+    lines = MyIterable(line.encode(encoding) for line in lines)
+    # print(lines.contents)
+
+    try:
+        args[0] = args0.encode(encoding)
+        assert match_field(lines, *args) == tuple(result)
+    except AttributeError:
+        # print(-1)
+        # print(type(args))
+        args[0] = MyIterable(x.encode(encoding) for x in args0)
+        # print(2)
+        assert match_field(lines, *args) == tuple(result)
 
 
 # The length of 'utf-16' bytearrays doubles from the normal ones

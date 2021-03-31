@@ -54,3 +54,18 @@ def pytest_ignore_collect(path, config):
         version = tuple(int(x) for x in match.groups())
         if sys.version_info < version:
             return True
+
+
+class MyIterable(object):
+    """My Iterable class."""
+
+    def __init__(self, *args, **kwargs):
+        # print(0)
+        self.contents = tuple(*args, **kwargs)
+        # print(1)
+
+    def __iter__(self, *args, **kwargs):
+        return self.contents.__iter__(*args, **kwargs)
+
+    def __eq__(self, other):
+        return self.contents == other.contents
