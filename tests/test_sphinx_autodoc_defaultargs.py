@@ -6,15 +6,15 @@ from sphinx_autodoc_defaultargs import rstrip_min
 # The length of 'utf-16' bytearrays doubles from the normal ones
 @pytest.mark.parametrize('encoding', ['utf-8'])
 @pytest.mark.parametrize('string, min_len, result, default_result', [
-    ('',    0, '',    ''),
-    ('',    1, '',    ''),
+    ('', 0, '', ''),
+    ('', 1, '', ''),
     (' \t', 1, ' \t', ' '),
     (' \t', 2, ' \t', ' \t'),
-    (' a ', 1, ' ',   ' a'),
-    (' a ', 2, ' a',  ' a'),
+    (' a ', 1, ' ', ' a'),
+    (' a ', 2, ' a', ' a'),
     (' a ', 3, ' a ', ' a '),
-    (chr(0x0bf2) + ' ', 0, '',                chr(0x0bf2)),
-    (chr(0x0bf2) + ' ', 1, chr(0x0bf2),       chr(0x0bf2)),
+    (chr(0x0bf2) + ' ', 0, '', chr(0x0bf2)),
+    (chr(0x0bf2) + ' ', 1, chr(0x0bf2), chr(0x0bf2)),
     (chr(0x0bf2) + ' ', 2, chr(0x0bf2) + ' ', chr(0x0bf2) + ' '),
 ])
 def test_rstrip_min(encoding, string, min_len, result, default_result):

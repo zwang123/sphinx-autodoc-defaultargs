@@ -30,8 +30,9 @@ else:
 
 from sphinx.application import Sphinx
 from sphinx.util import logging
-from sphinx.util.inspect import object_description, unwrap_all
+from sphinx.util.inspect import object_description
 from sphinx.util.inspect import signature as Signature
+from sphinx.util.inspect import unwrap_all
 
 logger = logging.getLogger(__name__)
 
