@@ -21,10 +21,13 @@ def test_my_iterable(args, kwargs):
     assert not issubclass(MyIterable, abc.Iterator)
     assert not issubclass(MyIterable, abc.Sized)
     assert not issubclass(MyIterable, abc.Callable)
-    assert not issubclass(MyIterable, abc.Collection)
     assert not issubclass(MyIterable, abc.Sequence)
     assert not issubclass(MyIterable, abc.Set)
     assert not issubclass(MyIterable, abc.Mapping)
+    try:
+        assert not issubclass(MyIterable, abc.Collection)
+    except AttributeError:
+        pass  # Python 3.5 Compatibility
     my_iterable = MyIterable(*args, **kwargs)
     print(my_iterable.contents)
     assert isinstance(my_iterable, abc.Iterable)
@@ -65,8 +68,6 @@ def test_match_field(encoding, args, result):
     :rtype: int
     ''').format(blank=' \t\v').split('\n'))
 
-    # print(lines.contents)
-
     if result[0]:
         result[-1] = result[-1].split('\n')
 
@@ -84,16 +85,12 @@ def test_match_field(encoding, args, result):
         result[3] = result[3].encode(encoding)
         result[4] = [r.encode(encoding) for r in result[4]]
     lines = MyIterable(line.encode(encoding) for line in lines)
-    # print(lines.contents)
 
     try:
         args[0] = args0.encode(encoding)
         assert match_field(lines, *args) == tuple(result)
     except AttributeError:
-        # print(-1)
-        # print(type(args))
         args[0] = MyIterable(x.encode(encoding) for x in args0)
-        # print(2)
         assert match_field(lines, *args) == tuple(result)
 
 

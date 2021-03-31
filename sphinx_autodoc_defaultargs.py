@@ -82,10 +82,6 @@ def match_field(lines: Iterable[AnyStr],
     matched = None
     text = None
     for i, line in enumerate(lines):
-        # if line:
-        #     print(line)
-        #     print(line[0])
-        #     print(type(line)(line[0]))
         # Only match once
         if not found:
             if isinstance(searchfor, Pattern):
@@ -102,8 +98,6 @@ def match_field(lines: Iterable[AnyStr],
                     matched = searchfor
             else:
                 for search_string in searchfor:
-                    # print(type(line))
-                    # print(type(search_string))
                     if line.startswith(search_string):
                         found = True
                         starting_line_index = i
@@ -112,8 +106,8 @@ def match_field(lines: Iterable[AnyStr],
 
         # Found the next item
         # NOTE bytes[0] is not bytes
-        # type(line)(line[0]).isspace() <- bugged
-        # bytes(int) -> \x00 array of length arg
+        #      type(line)(line[0]).isspace() <- bugged
+        #      bytes(int) -> \x00 array of length arg
         elif line and line.lstrip() == line or not line and not include_blank:
             ending_line_index = i
             break
@@ -185,11 +179,9 @@ def rfind_substring_in_paragraph(lines: Iterable[AnyStr],
                 # found substr
                 found = True
                 idx_end = idx_start + len(substr)
-                if strip:
-                    # Empty string is not space
-                    is_end = i == last_nonempty and not line[idx_end:].strip()
-                else:
-                    is_end = i == last_nonempty and not line[idx_end:]
+                # Empty string is not space
+                line_end = line[idx_end:].strip() if strip else line[idx_end:]
+                is_end = i == last_nonempty and not line_end
                 match_start = (i, idx_start)
                 match_end = (i, idx_end)
                 break
