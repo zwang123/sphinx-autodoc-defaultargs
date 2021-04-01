@@ -59,11 +59,20 @@ def pytest_ignore_collect(path, config):
 class MyIterable(object):
     """My Iterable class."""
 
+    Type = tuple
+
     def __init__(self, *args, **kwargs):
-        self.contents = tuple(*args, **kwargs)
+        self.contents = self.Type(*args, **kwargs)
 
     def __iter__(self, *args, **kwargs):
         return self.contents.__iter__(*args, **kwargs)
 
     def __eq__(self, other):
         return self.contents == other.contents
+
+    def __add__(self, other):
+        try:
+            other = other.contents
+        except AttributeError:
+            pass
+        return self.__class__(self.contents + self.Type(other))

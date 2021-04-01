@@ -8,7 +8,8 @@ from collections import abc
 import pytest
 from conftest import MyIterable
 
-from sphinx_autodoc_defaultargs import match_field, rstrip_min
+from sphinx_autodoc_defaultargs import (
+    match_field, rfind_substring_in_paragraph, rstrip_min)
 
 
 @pytest.mark.parametrize('args', [(), ([],), ((1,),), ((0, 1),), (range(1),)])
@@ -36,6 +37,9 @@ def test_my_iterable(args, kwargs):
     [x for x in my_iterable]
 
     assert my_iterable.contents == tuple(*args, **kwargs)
+
+    assert MyIterable() + [0] == MyIterable([0])
+    assert MyIterable() + (0, 1) == MyIterable((0, 1))
 
 
 @pytest.mark.parametrize('encoding', ['utf-8'])
@@ -125,6 +129,45 @@ def test_rstrip_min(encoding, string, min_len, result, default_result):
 
     assert rstrip_min(bstring, min_len, bchars) == bresult
     assert rstrip_min(bstring, min_len) == bdefault_result
+
+
+@pytest.mark.parametrize('encoding', ['utf-8'])
+@pytest.mark.parametrize('substr, strip, result', [
+    (')', False, [True, False, (1, 2), (1, 3)]),
+    (')', True, [True, True, (1, 2), (1, 3)]),
+    (') ', False, [True, False, (1, 2), (1, 4)]),
+    (') ', True, [True, True, (1, 2), (1, 3)]),
+    (' )', False, [False] + [None] * 3),
+    (' )', True, [True, True, (1, 2), (1, 3)]),
+    ('(', False, [True, False, (1, 0), (1, 1)]),
+    ('(', True, [True, False, (1, 0), (1, 1)]),
+    ('( ', False, [False] + [None] * 3),
+    ('( ', True, [True, False, (1, 0), (1, 1)]),
+    (' (', False, [True, False, (0, 0), (0, 2)]),
+    (' (', True, [True, False, (1, 0), (1, 1)]),
+])
+def test_rfind_substring_in_paragraph(encoding, substr, strip, result):
+    lines = MyIterable(textwrap.dedent('''\
+     ({blank}
+    (0) {blank}
+    ''').format(blank='\t\v').split('\n'))
+
+    def test(tail):
+        assert tuple(result) == rfind_substring_in_paragraph(
+            lines, substr, strip)
+
+        new_result = result.copy()
+        if result[0]:
+            new_result[1] = result[1] and strip
+        assert tuple(new_result) == rfind_substring_in_paragraph(
+            lines + [tail], substr, strip)
+
+    test('\n')
+
+    lines = MyIterable(line.encode(encoding) for line in lines)
+    substr = substr.encode(encoding)
+
+    test('\n'.encode(encoding))
 
 
 @pytest.mark.parametrize('always_document_default_args', [True, False])

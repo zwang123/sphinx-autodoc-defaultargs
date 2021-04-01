@@ -50,10 +50,6 @@ In the root directory, run the following command in the terminal.
 python setup.py install
 ```
 
-### Manual Installation
-
-Copy the `sphinx_autodoc_defaultargs.py` file to the Python package folder.
-
 ## Usage
 
 Add the extension as well as the global substitution to the `conf.py` file:

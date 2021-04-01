@@ -164,14 +164,16 @@ def rfind_substring_in_paragraph(lines: Iterable[AnyStr],
     match_start = None
     match_end = None
 
-    last_nonempty = len(lines) - 1
-
     # test empty substr
     if strip:
         substr = substr.strip()
 
+    last_isempty = True
     if not multiline_matching:
         for i, line in reversed(list(enumerate(lines))):
+            if last_isempty:
+                last_nonempty = i
+            last_isempty = False
             idx_start = line.rfind(substr)
             if idx_start >= 0:
                 # found substr
@@ -184,7 +186,7 @@ def rfind_substring_in_paragraph(lines: Iterable[AnyStr],
                 match_end = (i, idx_end)
                 break
             elif strip and not line.strip():
-                last_nonempty -= 1
+                last_isempty = True
     else:
         raise NotImplementedError
 
