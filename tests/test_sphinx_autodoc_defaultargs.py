@@ -3,43 +3,13 @@ import pathlib
 import re
 import sys
 import textwrap
-from collections import abc
 
 import pytest
-from conftest import MyIterable
+from myclasses import MyCallable, MyIterable
+from myclasses import __MyFunctor as MyFunctor
 
 from sphinx_autodoc_defaultargs import (
-    match_field, rfind_substring_in_paragraph, rstrip_min)
-
-
-@pytest.mark.parametrize('args', [(), ([],), ((1,),), ((0, 1),), (range(1),)])
-@pytest.mark.parametrize('kwargs', [{}])
-def test_my_iterable(args, kwargs):
-    print(MyIterable, args, kwargs)
-    assert issubclass(MyIterable, abc.Iterable)
-    assert not issubclass(MyIterable, abc.Container)
-    assert not issubclass(MyIterable, abc.Hashable)
-    assert not issubclass(MyIterable, abc.Iterator)
-    assert not issubclass(MyIterable, abc.Sized)
-    assert not issubclass(MyIterable, abc.Callable)
-    assert not issubclass(MyIterable, abc.Sequence)
-    assert not issubclass(MyIterable, abc.Set)
-    assert not issubclass(MyIterable, abc.Mapping)
-    try:
-        assert not issubclass(MyIterable, abc.Collection)
-    except AttributeError:
-        pass  # Python 3.5 Compatibility
-    my_iterable = MyIterable(*args, **kwargs)
-    print(my_iterable.contents)
-    assert isinstance(my_iterable, abc.Iterable)
-    for _ in my_iterable:
-        pass
-    [x for x in my_iterable]
-
-    assert my_iterable.contents == tuple(*args, **kwargs)
-
-    assert MyIterable() + [0] == MyIterable([0])
-    assert MyIterable() + (0, 1) == MyIterable((0, 1))
+    get_args, match_field, rfind_substring_in_paragraph, rstrip_min)
 
 
 @pytest.mark.parametrize('encoding', ['utf-8'])
@@ -168,6 +138,28 @@ def test_rfind_substring_in_paragraph(encoding, substr, strip, result):
     substr = substr.encode(encoding)
 
     test('\n'.encode(encoding))
+
+
+def my_func(*, y, **kwargs_):
+    pass
+
+# TODO partial
+
+
+@pytest.mark.parametrize('func, for_sphinx, result', [
+    (lambda: 0, False, []),
+    (lambda: 0, True, []),
+    (lambda x_, *args_: 0, False, ['x_', 'args_']),
+    (lambda x_, *args_: 0, True, [r'x\_', r'args\_']),
+    (my_func, False, ['y', 'kwargs_']),
+    (my_func, True, ['y', r'kwargs\_']),
+    (MyFunctor(), False, ['x', 'y_']),
+    (MyFunctor(), True, ['x', r'y\_']),
+])
+def test_get_args(func, for_sphinx, result):
+    assert get_args(func, for_sphinx) == result
+    # TODO
+    assert get_args(MyCallable(func), for_sphinx) == ['args', 'kwargs']
 
 
 @pytest.mark.parametrize('always_document_default_args', [True, False])
