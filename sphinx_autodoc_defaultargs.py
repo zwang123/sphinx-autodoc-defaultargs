@@ -49,10 +49,14 @@ from sphinx.util.inspect import unwrap_all
 
 logger = logging.getLogger(__name__)
 
-param_fields = ('param', 'parameter', 'arg', 'argument')
+# NOTE sphinx.ext.napoleon does not support 'key' field
+kw_fields = ('key', 'keyword')
+param_fields = ('param', 'parameter', 'arg', 'argument') + kw_fields
+type_fields = ('type', 'kwtype')
 other_fields = (
     'raises', 'raise', 'except', 'exception', 'var', 'ivar', 'cvar',
-    'vartype', 'returns', 'return', 'rtype', 'meta', 'key', 'keyword')
+    'vartype', 'returns', 'return', 'rtype', 'meta',
+)
 
 
 def match_field(lines: Iterable[AnyStr],
@@ -195,8 +199,16 @@ def rfind_substring_in_paragraph(lines: Iterable[AnyStr],
 
 def get_args(func: Callable, for_sphinx: bool = True) -> List[str]:
     signature = Signature(unwrap_all(func))
-    return ['{}\\_'.format(k[:-1]) if for_sphinx and k.endswith('_')
-            else k for k in signature.parameters]
+
+    result = []
+    for name, param in signature.parameters.items():
+        if param.kind == inspect.Parameter.VAR_POSITIONAL:
+            name = (r'\*' if for_sphinx else '*') + name
+        elif param.kind == inspect.Parameter.VAR_KEYWORD:
+            name = (r'\*\*' if for_sphinx else '**') + name
+        result.append(name[:-1] + r'\_'
+                      if for_sphinx and name.endswith('_') else name)
+    return result
 
 
 def get_default_args(func: Callable,
@@ -211,29 +223,47 @@ def get_default_args(func: Callable,
         if v.default is not inspect.Parameter.empty:
             if for_sphinx and k.endswith('_'):
                 k = '{}\\_'.format(k[:-1])
-            default_args[k] = v.default
+            default_args[k] = (
+                v.default, v.kind == inspect.Parameter.KEYWORD_ONLY)
     return default_args
 
 
-def find_next_arg(
+def find_arg(
         lines: Collection[str], args: Sequence[str],
-        arg: str, template=r':\S+ {}:') -> Optional[int]:
-    """Finds the next argument following ``arg`` before other fields."""
+        arg: str, incr: int, template=r':\S+ [\*\\]*{}:',
+) -> Tuple[Optional[int], Optional[str]]:
+    """Finds the argument following ``arg`` before other fields.
+
+    Args:
+        incr:
+            If it is 1, find the next arg.
+            If it is 0, fin the current arg.
+            Should be nonnegative.
+
+    Returns:
+        (line index of the next found argument,
+        the type of next argument if found)
+    """
 
     if arg not in args:
-        return None
+        return None, None
 
-    nextarg_idx = args.index(arg) + 1
+    nextarg_idx = args.index(arg) + incr
 
     for nextarg in args[nextarg_idx:]:
-        found, start = match_field(
-            lines, re.compile(template.format(nextarg)))[:2]
+        # If not lstrip, \ must be replaced by \\, because
+        # the regex pattern will treat \ as an escape indicator.
+        nextarg = nextarg.lstrip(r'\*')
+        found, start, _, matched = match_field(
+            lines, re.compile(template.format(nextarg)))[:4]
         if found:
-            return start
+            return start, matched.split(' ')[0][1:]
 
+    # Assume Keyword is after Parameters
     # Other fields might come before param field
     prev_line_idx = 0
     for prevarg in reversed(args[:nextarg_idx]):
+        prevarg = prevarg.lstrip(r'\*')
         found, start = match_field(
             lines, re.compile(template.format(prevarg)))[:2]
         if found:
@@ -245,7 +275,15 @@ def find_next_arg(
                                 for field in other_fields])[1]
 
     # Should return len(lines) if nextarg not found
-    return start + prev_line_idx
+    return start + prev_line_idx, None
+
+
+def find_next_arg(*args, **kwargs):
+    return find_arg(*args, incr=1, **kwargs)
+
+
+def find_curr_arg(*args, **kwargs):
+    return find_arg(*args, incr=0, **kwargs)
 
 
 def process_docstring(app: Sphinx, what, name, obj, options, lines):
@@ -269,7 +307,7 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
     obj = inspect.unwrap(obj)
 
     default_args = get_default_args(obj)
-    for argname, default in default_args.items():
+    for argname, (default, is_keyword_only) in default_args.items():
 
         # what if default has \
         default = ':code:`{}`'.format(object_description(default))
@@ -283,10 +321,9 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
         # TODO Test case: empty param
         searchfor = [':{} {}:'.format(field, argname)
                      for field in param_fields]
-        param_found, param_start_line, param_end_line, \
-            param_matched, param_text = match_field(
-                lines, searchfor, include_blank=app.config.
-                docstring_default_arg_after_directives)
+        param_found, param_start, param_end, param_matched, param_text = \
+            match_field(lines, searchfor, include_blank=app.config.
+                        docstring_default_arg_after_directives)
 
         if param_found:
 
@@ -318,24 +355,24 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
                                     [param_text[t_start[0]][:t_start[1]]])
                             if strip:
                                 default = default.strip()
-                            lines[param_start_line + h_start[0]] = \
-                                lines[param_start_line + h_start[0]
+                            lines[param_start + h_start[0]] = \
+                                lines[param_start + h_start[0]
                                       ][:len(param_matched) + 1 + h_start[1]]
-                            del lines[param_start_line +
-                                      h_start[0] + 1: param_end_line]
-                            param_end_line = param_start_line + h_start[0] + 1
+                            del lines[param_start +
+                                      h_start[0] + 1: param_end]
+                            param_end = param_start + h_start[0] + 1
                             break
 
                 if strip:
-                    lines[param_end_line - 1] = rstrip_min(
-                        lines[param_end_line - 1], len(param_matched) + 1)
+                    lines[param_end - 1] = rstrip_min(
+                        lines[param_end - 1], len(param_matched) + 1)
 
                 if docstring_default_arg_parenthesis:
                     raise NotImplementedError
                 else:
                     # To prevent insertion into Note directives or so
                     lines.insert(
-                        param_end_line,
+                        param_end,
                         ' ' * len(param_matched) + ' {} {}'.format(
                             app.config.docstring_default_arg_substitution,
                             default))
@@ -344,21 +381,25 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
             # Since ``kwargs`` (no default args) might come
             # after ``argname``, it will not be in ``default_args``.
             # Need to generate the full args list.
-            next_start = find_next_arg(lines, get_args(obj), argname)
+            next_start, next_type = find_next_arg(
+                lines, get_args(obj), argname)
 
             if docstring_default_arg_parenthesis:
                 raise NotImplementedError
             else:
                 lines.insert(
-                    next_start, ':param {}: {} {}'.format(
+                    next_start, ':{} {}: {} {}'.format(
+                        'keyword' if is_keyword_only and (
+                            next_type is None or
+                            next_type in kw_fields) else 'param',
                         argname,
                         app.config.docstring_default_arg_substitution,
                         default))
 
         # Search for type
         type_found, type_start, type_end, type_matched, type_text = \
-            match_field(lines, ':{} {}:'.format('type', argname),
-                        include_blank=False)
+            match_field(lines, [':{} {}:'.format(field, argname)
+                                for field in type_fields], include_blank=False)
 
         if type_found:
             type_text = ' '.join(type_text)
@@ -376,9 +417,14 @@ def process_docstring(app: Sphinx, what, name, obj, options, lines):
                     # Do not insert newline to prevent whitespace before ','
                     lines[type_end - 1] += ', optional'
         elif param_found or app.config.always_document_default_args:
-            next_start = find_next_arg(lines, get_args(obj), argname)
+            # insert type before param
+            param_start, param_type = find_curr_arg(
+                lines, get_args(obj), argname)
+            assert any(lines[param_start].startswith(search)
+                       for search in searchfor)
             lines.insert(
-                next_start, ':type {}: optional'.format(argname))
+                param_start, ':{}type {}: optional'.format(
+                    'kw' if param_type in kw_fields else '', argname))
 
 
 def setup(app: Sphinx):

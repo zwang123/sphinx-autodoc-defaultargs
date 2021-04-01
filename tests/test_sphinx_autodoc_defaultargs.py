@@ -149,17 +149,17 @@ def my_func(*, y, **kwargs_):
 @pytest.mark.parametrize('func, for_sphinx, result', [
     (lambda: 0, False, []),
     (lambda: 0, True, []),
-    (lambda x_, *args_: 0, False, ['x_', 'args_']),
-    (lambda x_, *args_: 0, True, [r'x\_', r'args\_']),
-    (my_func, False, ['y', 'kwargs_']),
-    (my_func, True, ['y', r'kwargs\_']),
+    (lambda x_, *args_: 0, False, ['x_', '*args_']),
+    (lambda x_, *args_: 0, True, [r'x\_', r'\*args\_']),
+    (my_func, False, ['y', '**kwargs_']),
+    (my_func, True, ['y', r'\*\*kwargs\_']),
     (MyFunctor(), False, ['x', 'y_']),
     (MyFunctor(), True, ['x', r'y\_']),
 ])
 def test_get_args(func, for_sphinx, result):
     assert get_args(func, for_sphinx) == result
     # TODO
-    assert get_args(MyCallable(func), for_sphinx) == ['args', 'kwargs']
+    assert get_args(MyCallable(func)) == [r'\*args', r'\*\*kwargs']
 
 
 @pytest.mark.parametrize('always_document_default_args', [True, False])
@@ -177,14 +177,19 @@ def test_sphinx_output(app, status, warning, always_document_default_args):
 
     assert 'build succeeded' in status.getvalue()  # Build succeeded
 
-    # # There should be a warning about an unresolved forward reference
-    # warnings = warning.getvalue().strip()
-    # assert 'Cannot ' in warnings, warnings
+    # There should be a warning
+    warnings = warning.getvalue().strip()
+    assert re.search('dummy_module.py:docstring of dummy_module.TestClassWithArgs.'
+                     r'method_with_args_asterisk_not_escaped:\d+: '
+                     'WARNING: Inline emphasis start-string without end-string.',
+                     warnings), warnings
 
     pre_dict = {
         'param': '\n\n   Parameters:\n'
         '      **{var}**{type_str} --  "{default}"',
         'midparam': '\n\n      * **{var}**{type_str} --  "{default}"',
+        'kw': '\n\n   Keyword Arguments:\n'
+        '      **{var}**{type_str} --  "{default}"',
     }
     varlist = ('x', 'a')
     typelist = ('', 'int', 'str')
@@ -225,7 +230,7 @@ def test_sphinx_output(app, status, warning, always_document_default_args):
 
                  "'Default Value'"
 
-        class dummy_module.TestClass(x=None)
+        class dummy_module.TestClassWithReturn(x=None)
 
            Class docstring.{param_x_t_vNone_ind0}
 
@@ -241,7 +246,8 @@ def test_sphinx_output(app, status, warning, always_document_default_args):
 
                  * **y** -- bar{midparam_a_t_v0_ind1}
 
-                 * **kw** -- null
+              Keyword Arguments:
+                 ****kw** -- null
 
            method_with_mid_defargs(x, a=0, y='')
 
@@ -254,6 +260,86 @@ def test_sphinx_output(app, status, warning, always_document_default_args):
                  * **x** (*int**, **str*) -- foo{midparam_a_t_v0_ind1}
 
                  * **y** (*str**, **optional*) -- bar  empty
+
+        class dummy_module.TestClassWithArgs
+
+           Class docstring.
+
+           method_with_args(a, x=0, *args)
+
+              Method docstring.
+
+              Parameters:
+                 * **a** -- foo{midparam_x_t_v0_ind1}
+
+                 * ***args** -- bar
+
+           method_with_args_asterisk_not_escaped(a, x=0, *args)
+
+              Method docstring.
+
+              Parameters:
+                 * **a** -- foo{midparam_x_t_v0_ind1}
+
+                 * ***args** --
+
+                   bar
+
+           method_with_args_no_asterisk(a, x=0, *args)
+
+              Method docstring.
+
+              Parameters:
+                 * **a** -- foo{midparam_x_t_v0_ind1}
+
+                 * **args** -- bar
+
+           method_with_kwargs_as_kw_x_forced_param(a, *, x=0, **kwargs)
+
+              Method docstring.
+
+              Parameters:
+                 * **a** -- foo{midparam_x_t_v0_ind1}
+
+                 * ****kwargs** -- bar
+
+           method_with_kwargs_as_kw_x_kw(*, a, x=0, **kwargs)
+
+              Method docstring.
+
+              Keyword Arguments:
+                 * **a** -- foo{midparam_x_t_v0_ind1}
+
+                 * ****kwargs** -- bar
+
+           method_with_kwargs_as_kw_x_param(x=0, /, **kwargs)
+
+              Method docstring.{param_x_t_v0_ind1}
+
+              Keyword Arguments:
+                 ****kwargs** -- foo
+
+           method_with_kwargs_as_param(a, x=0, **kwargs)
+
+              Method docstring.
+
+              Parameters:
+                 * **a** -- foo{midparam_x_t_v0_ind1}
+
+                 * ****kwargs** -- bar
+
+           method_with_last_kw_optional(*args, x=0)
+
+              Method docstring.
+
+              Returns:
+                 0
+
+              Parameters:
+                 ***args** -- foo{kw_x_t_v0_ind1}
+
+              Raises:
+                 **ValueError** -- If "x" is nonzero.
         ''')
         print(text_contents)
         expected_contents = expected_contents.format(
