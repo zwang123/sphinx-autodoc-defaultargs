@@ -13,7 +13,8 @@ def func(x=None, y=None):
 
     if y is None:
         y = 'Default Value'
-    pass
+
+    ...
 
 
 class TestClassWithReturn:

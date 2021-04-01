@@ -103,22 +103,26 @@ def test_rstrip_min(encoding, string, min_len, result, default_result):
 
 @pytest.mark.parametrize('encoding', ['utf-8'])
 @pytest.mark.parametrize('substr, strip, result', [
-    (')', False, [True, False, (1, 2), (1, 3)]),
-    (')', True, [True, True, (1, 2), (1, 3)]),
-    (') ', False, [True, False, (1, 2), (1, 4)]),
-    (') ', True, [True, True, (1, 2), (1, 3)]),
+    (')', False, [True, False, (4, 2), (4, 3)]),
+    (')', True, [True, True, (4, 2), (4, 3)]),
+    (') ', False, [True, False, (4, 2), (4, 4)]),
+    (') ', True, [True, True, (4, 2), (4, 3)]),
     (' )', False, [False] + [None] * 3),
-    (' )', True, [True, True, (1, 2), (1, 3)]),
-    ('(', False, [True, False, (1, 0), (1, 1)]),
-    ('(', True, [True, False, (1, 0), (1, 1)]),
+    (' )', True, [True, True, (4, 2), (4, 3)]),
+    ('(', False, [True, False, (4, 0), (4, 1)]),
+    ('(', True, [True, False, (4, 0), (4, 1)]),
     ('( ', False, [False] + [None] * 3),
-    ('( ', True, [True, False, (1, 0), (1, 1)]),
-    (' (', False, [True, False, (0, 0), (0, 2)]),
-    (' (', True, [True, False, (1, 0), (1, 1)]),
+    ('( ', True, [True, False, (4, 0), (4, 1)]),
+    (' (', False, [True, False, (2, 0), (2, 2)]),
+    (' (', True, [True, False, (4, 0), (4, 1)]),
+    ('x', True, [True, False, (0, 0), (0, 1)]),
 ])
 def test_rfind_substring_in_paragraph(encoding, substr, strip, result):
     lines = MyIterable(textwrap.dedent('''\
+    x
+
      ({blank}
+
     (0) {blank}
     ''').format(blank='\t\v').split('\n'))
 
