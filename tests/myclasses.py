@@ -1,3 +1,6 @@
+import sys
+
+
 class MyIterable(object):
     """My Iterable class."""
 
@@ -10,7 +13,8 @@ class MyIterable(object):
         return self.contents.__iter__(*args, **kwargs)
 
     def __eq__(self, other):
-        return type(self) == type(other) and self.contents == other.contents
+        return isinstance(
+            other, type(self)) and self.contents == other.contents
 
     def __add__(self, other):
         try:
@@ -31,12 +35,12 @@ class MyCallable(object):
 
     # must keep the same type
     def __eq__(self, other):
-        return type(self) == type(other) and self.func == other.func
+        return isinstance(other, type(self)) and self.func == other.func
 
 
 class __MyFunctor(object):
-    def __call__(self=None, x=None, /, y_=0):
-        pass
+    exec('def __call__(self=None, x=None, {}y_=0): pass'.format(
+        '' if sys.version_info[:2] < (3, 8) else '/, '))
 
     def __eq__(self, other):
         try:

@@ -1,3 +1,7 @@
+import sys
+import textwrap
+
+
 def func(x=None, y=None):
     """
     Example docstring.
@@ -98,13 +102,15 @@ class TestClassWithArgs:
         pass
 
     # param
-    def method_with_kwargs_as_kw_x_param(self, x=0, /, **kwargs):
-        r"""
-        Method docstring.
+    exec(textwrap.dedent('''\
+    def method_with_kwargs_as_kw_x_param(self, x=0, {}**kwargs):
+        {}
+        pass'''.format(
+        '' if sys.version_info[:2] < (3, 8) else '/, ', repr(r"""
+            Method docstring.
 
-        :keyword \*\*kwargs: foo
-        """
-        pass
+            :keyword \*\*kwargs: foo
+            """))))
 
     # param
     def method_with_kwargs_as_param(self, a, x=0, **kwargs):

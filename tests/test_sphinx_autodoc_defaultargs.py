@@ -312,7 +312,7 @@ def test_sphinx_output(app, status, warning, always_document_default_args):
 
                  * ****kwargs** -- bar
 
-           method_with_kwargs_as_kw_x_param(x=0, /, **kwargs)
+           method_with_kwargs_as_kw_x_param(x=0, {slash}**kwargs)
 
               Method docstring.{param_x_t_v0_ind1}
 
@@ -343,5 +343,6 @@ def test_sphinx_output(app, status, warning, always_document_default_args):
         ''')
         print(text_contents)
         expected_contents = expected_contents.format(
+            slash='' if sys.version_info[:2] < (3, 8) else '/, ',
             **format_args).replace('–', '--')
         assert text_contents == expected_contents
