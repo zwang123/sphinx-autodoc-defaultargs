@@ -1,3 +1,4 @@
+import functools
 import itertools
 import pathlib
 import re
@@ -147,8 +148,6 @@ def test_rfind_substring_in_paragraph(encoding, substr, strip, result):
 def my_func(*, y, **kwargs_):
     pass
 
-# TODO partial
-
 
 @pytest.mark.parametrize('func, for_sphinx, result', [
     (lambda: 0, False, []),
@@ -159,10 +158,24 @@ def my_func(*, y, **kwargs_):
     (my_func, True, ['y', r'\*\*kwargs\_']),
     (MyFunctor(), False, ['x', 'y_']),
     (MyFunctor(), True, ['x', r'y\_']),
+    (MyFunctor()._MyFunctor__method, True, []),
+    # get_args unwraps all, so `self`, `cls` are included
+    # partial functions unwrapped as well
+    # but class methods bound with class instances does not include `self`
+    (functools.partial(my_func, y=None), True, ['y', r'\*\*kwargs\_']),
+    (MyFunctor._classmethod, True, ['cls']),
+    (MyFunctor()._classmethod, True, ['cls']),
+    (MyFunctor._classmethod_, True, ['cls']),
+    (MyFunctor._staticmethod, True, ['x']),
+    (MyFunctor._MyFunctor__staticmethod, True, ['x']),
+    (MyFunctor._MyFunctor__method, True, ['self']),
+    (MyFunctor.__eq__, True, ['self', 'other']),
+    (MyFunctor.__call__, True, ['self', 'x', r'y\_']),
+    # inplicit __init__
+    (MyFunctor.__init__, True, ['self', r'\*args', r'\*\*kwargs']),
 ])
 def test_get_args(func, for_sphinx, result):
     assert get_args(func, for_sphinx) == result
-    # TODO
     assert get_args(MyCallable(func)) == [r'\*args', r'\*\*kwargs']
 
 

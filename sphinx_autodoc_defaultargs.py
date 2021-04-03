@@ -218,6 +218,7 @@ def get_default_args(func: Callable,
     #   an ordered mapping in >= 3.5.
     default_args = OrderedDict()
     for k, v in signature.parameters.items():
+        # assume *args, **kwargs does not have default
         if v.default is not inspect.Parameter.empty:
             if for_sphinx and k.endswith('_'):
                 k = '{}\\_'.format(k[:-1])
@@ -228,7 +229,7 @@ def get_default_args(func: Callable,
 
 def find_arg(
         lines: Collection[str], args: Sequence[str],
-        arg: str, incr: int, template=r':\S+ [\*\\]*{}:',
+        arg: str, incr: int, template: str = r':\S+ [\*\\]*{}:',
 ) -> Tuple[Optional[int], Optional[str]]:
     """Finds the argument following ``arg`` before other fields.
 
@@ -284,7 +285,8 @@ def find_curr_arg(*args, **kwargs):
     return find_arg(*args, incr=0, **kwargs)
 
 
-def process_docstring(app: Sphinx, what, name, obj, options, lines):
+def process_docstring(app: Sphinx, what: str, name: str, obj: Any,
+                      options: Any, lines: List[str]):
     """Process docstring after Sphinx.
 
     See `autodoc-process-docstring <https://www.sphinx-doc.org/en/master/
