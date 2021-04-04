@@ -31,6 +31,8 @@ from sphinx_autodoc_defaultargs import (
         [True, 8, 9, ':rtype:', 'int']),
 ])
 def test_match_field(encoding, args, result):
+    assert match_field(MyIterable(), *args) == (False, 0, 0, None, None)
+
     lines = MyIterable(textwrap.dedent('''\
     :param x:
     :parameter y: foo
@@ -119,6 +121,9 @@ def test_rstrip_min(encoding, string, min_len, result, default_result):
     ('x', True, [True, False, (0, 0), (0, 1)]),
 ])
 def test_rfind_substring_in_paragraph(encoding, substr, strip, result):
+    assert (False, None, None, None) == rfind_substring_in_paragraph(
+        MyIterable(), substr, strip)
+
     lines = MyIterable(textwrap.dedent('''\
     x
 
@@ -179,7 +184,7 @@ def test_get_args(func, for_sphinx, result):
     assert get_args(MyCallable(func)) == [r'\*args', r'\*\*kwargs']
 
 
-@pytest.mark.parametrize('always_document_default_args', [True, False])
+@pytest.mark.parametrize('always_document_default_args', [False, True])
 @pytest.mark.sphinx('text', testroot='dummy')
 def test_sphinx_output(app, status, warning, always_document_default_args):
     test_path = pathlib.Path(__file__).parent
@@ -204,13 +209,20 @@ def test_sphinx_output(app, status, warning, always_document_default_args):
     pre_dict = {
         'param': '\n\n   Parameters:\n'
         '      **{var}**{type_str} --  "{default}"',
-        'midparam': '\n\n      * **{var}**{type_str} --  "{default}"',
+        'nlparam': '\n   Parameters:\n'
+        '      **{var}**{type_str} --  "{default}"',
+        'multparam': '\n   Parameters:\n'
+        '      * **{var}**{type_str} --  "{default}"',
         'kw': '\n\n   Keyword Arguments:\n'
         '      **{var}**{type_str} --  "{default}"',
+        'multkw': '\n   Keyword Arguments:\n'
+        '      * **{var}**{type_str} --  "{default}"',
+        'midparam': '\n\n      * **{var}**{type_str} --  "{default}"',
     }
-    varlist = ('x', 'a')
+    varlist = ('x', 'a', '_self_', 'self', 'other', 'arg3', 'arg4')
     typelist = ('', 'int', 'str')
-    defaultlist = ('None', '0')
+    # estr = empty string
+    defaultlist = ('None', '0', '1', 'estr', 'prop')
 
     format_args = {}
     for (pre, text), var, typename, default, indentation_level in \
@@ -218,8 +230,10 @@ def test_sphinx_output(app, status, warning, always_document_default_args):
                               typelist, defaultlist, range(4)):
         key = '{}_{}_t{}_v{}_ind{}'.format(pre, var, typename, default,
                                            indentation_level)
+        default_text = "''" if default == 'estr' else (
+            '<property object>' if default == 'prop' else default)
         format_args[key] = textwrap.indent(
-            text.format(var=var, default=default,
+            text.format(var=var, default=default_text,
                         type_str=' ({}*optional*)'.format(
                             '*{}**, *'.format(typename) if typename else ''),
                         ),
@@ -357,9 +371,52 @@ def test_sphinx_output(app, status, warning, always_document_default_args):
 
               Raises:
                  **ValueError** -- If "x" is nonzero.
+
+        class dummy_module.__TestClassWithDefaultArgsOnSelf
+
+           Class docstring.
+
+           classmethod _TestClassWithDefaultArgsOnSelf__classmethod_()
+
+              Method docstring.
+
+           property _TestClassWithDefaultArgsOnSelf__property_
+
+              Method docstring.
+
+           __init__()
+
+              Method docstring.
+
+           static __new__(_self_=None)
+
+              Method docstring.{param__self__t_vNone_ind1}
+
+           classmethod _classmethod_()
+
+              Method docstring.
+
+           _method(other=0, arg3='')
+
+              Method docstring.
+        {multparam_other_t_v0_ind1}{midparam_arg3_t_vestr_ind1}{newline}
+           static _staticmethod(self=None, other='')
+
+              Method docstring.
+        {multparam_self_t_vNone_ind1}{midparam_other_t_vestr_ind1}{newline}
+           static _staticmethod_(self=None, other='')
+
+              Method docstring.
+        {multparam_self_t_vNone_ind1}{midparam_other_t_vestr_ind1}{newline}
+        dummy_module.__partial_func_of_method(self=None, *, arg3=None)
+        {nlparam_self_t_vNone_ind0}{kw_arg3_t_vNone_ind0}{newline}
+        dummy_module.__partial_func_of_static_method(self=None, *, other=<property object>)
+
+           Method docstring.{param_self_t_vNone_ind0}{kw_other_t_vprop_ind0}
         ''')
         print(text_contents)
         expected_contents = expected_contents.format(
             slash='' if sys.version_info[:2] < (3, 8) else '/, ',
+            newline='\n' if always_document_default_args else '',
             **format_args).replace('–', '--')
         assert text_contents == expected_contents

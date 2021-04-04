@@ -42,6 +42,7 @@ else:
     Pattern = type(re.compile(''))
 
 from sphinx.application import Sphinx
+from sphinx.ext.autodoc.importer import mangle
 from sphinx.util import logging
 from sphinx.util.inspect import object_description
 from sphinx.util.inspect import signature as Signature
@@ -83,6 +84,7 @@ def match_field(lines: Iterable[AnyStr],
     ending_line_index = None
     matched = None
     text = None
+    i = -1
     for i, line in enumerate(lines):
         # Only match once
         if not found:
@@ -152,6 +154,11 @@ def rfind_substring_in_paragraph(lines: Iterable[AnyStr],
                                             Optional[Tuple[int, int]]]:
     """
     Find the last matching ``substr`` in ``lines``.
+
+    Args:
+        substr:
+            If it is empty or empty after :meth:`str.strip` and
+            ``strip`` is True, the behavior is undefined.
 
     Returns:
         ``(found, is_end, match_start, match_end)``.
@@ -254,7 +261,8 @@ def find_arg(
         # the regex pattern will treat \ as an escape indicator.
         nextarg = nextarg.lstrip(r'\*')
         found, start, _, matched = match_field(
-            lines, re.compile(template.format(nextarg)))[:4]
+            lines,
+            re.compile(template.format(nextarg.replace('\\', '\\\\'))))[:4]
         if found:
             return start, matched.split(' ')[0][1:]
 
@@ -264,7 +272,8 @@ def find_arg(
     for prevarg in reversed(args[:nextarg_idx]):
         prevarg = prevarg.lstrip(r'\*')
         found, start = match_field(
-            lines, re.compile(template.format(prevarg)))[:2]
+            lines,
+            re.compile(template.format(prevarg.replace('\\', '\\\\'))))[:2]
         if found:
             prev_line_idx = start
             break
@@ -283,6 +292,25 @@ def find_next_arg(*args, **kwargs):
 
 def find_curr_arg(*args, **kwargs):
     return find_arg(*args, incr=0, **kwargs)
+
+
+def isstaticmethod(obj):
+    # https://stackoverflow.com/questions/3589311/
+    # get-defining-class-of-unbound-method-object-in-python-3/
+    # Modified from Yoel's Answer
+    obj = unwrap_all(obj)
+    if not inspect.isfunction(obj):
+        return False
+    cls = getattr(inspect.getmodule(obj),
+                  obj.__qualname__.split('.<locals>', 1)[0].rsplit('.', 1)[0],
+                  None)
+    cls = cls if isinstance(cls, type) else getattr(obj, '__objclass__', None)
+
+    # https://stackoverflow.com/questions/8727059/
+    # python-check-if-method-is-static
+    # Modified from Azmisov's Answer
+    return isinstance(inspect.getattr_static(
+        cls, mangle(cls, obj.__name__), None), staticmethod)
 
 
 def process_docstring(app: Sphinx, what: str, name: str, obj: Any,
@@ -305,6 +333,13 @@ def process_docstring(app: Sphinx, what: str, name: str, obj: Any,
         # obj = getattr(obj, '__init__')
 
     obj = inspect.unwrap(obj)
+
+    rm_first_arg = what in ['method', 'property',
+                            'class'] and not isstaticmethod(obj)
+    first_argname = next(iter(Signature(unwrap_all(
+        obj)).parameters)) if rm_first_arg else None
+    if first_argname and first_argname.endswith('_'):
+        first_argname = '{}\\_'.format(first_argname[:-1])
 
     default_args = get_default_args(obj)
     for argname, (default, is_keyword_only) in default_args.items():
@@ -376,7 +411,8 @@ def process_docstring(app: Sphinx, what: str, name: str, obj: Any,
                         ' ' * len(param_matched) + ' {} {}'.format(
                             app.config.docstring_default_arg_substitution,
                             default))
-        elif app.config.always_document_default_args:
+        elif app.config.always_document_default_args and (
+                not rm_first_arg or argname != first_argname):
 
             # Since ``kwargs`` (no default args) might come
             # after ``argname``, it will not be in ``default_args``.
@@ -416,7 +452,8 @@ def process_docstring(app: Sphinx, what: str, name: str, obj: Any,
                 else:
                     # Do not insert newline to prevent whitespace before ','
                     lines[type_end - 1] += ', optional'
-        elif param_found or app.config.always_document_default_args:
+        elif param_found or app.config.always_document_default_args and (
+                not rm_first_arg or argname != first_argname):
             # insert type before param
             param_start, param_type = find_curr_arg(
                 lines, get_args(obj), argname)

@@ -1,3 +1,4 @@
+import functools
 import sys
 import textwrap
 
@@ -134,3 +135,51 @@ class TestClassWithArgs:
         if x != 0:
             raise ValueError
         return x
+
+
+class __TestClassWithDefaultArgsOnSelf:
+    """
+    Class docstring.
+    """
+
+    def __init__(_self_=None):
+        """Method docstring."""
+        pass
+
+    def __new__(_self_=None):
+        """Method docstring."""
+        pass
+
+    @staticmethod
+    def _staticmethod(self=None, other=''):
+        """Method docstring."""
+        pass
+
+    @classmethod
+    def _classmethod_(_cls_=None):
+        """Method docstring."""
+        pass
+
+    def _method(self=None, other=0, arg3=''):
+        """Method docstring."""
+        pass
+
+    @property
+    def __property_(self=None):
+        """Method docstring."""
+        pass
+
+    _staticmethod_ = _staticmethod
+    __classmethod_ = _classmethod_
+    __method = functools.partialmethod(_method, None)
+
+
+__partial_func_of_method = functools.partial(
+    __TestClassWithDefaultArgsOnSelf._TestClassWithDefaultArgsOnSelf__method,
+    arg3=None)
+
+
+__partial_func_of_static_method = functools.partial(
+    __TestClassWithDefaultArgsOnSelf._staticmethod_,
+    other=__TestClassWithDefaultArgsOnSelf.
+    _TestClassWithDefaultArgsOnSelf__property_)
