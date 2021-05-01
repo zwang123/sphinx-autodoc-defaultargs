@@ -15,6 +15,8 @@ from typing import Any, AnyStr, Optional, Union
 
 if sys.version_info.major == 3 and sys.version_info.minor >= 9:
     from collections.abc import Callable, Collection, Iterable, Sequence
+
+    Dict = dict
     List = list
     OrderedDictType = dict
     Tuple = tuple
@@ -22,6 +24,7 @@ else:
     # typing.OrderedDict is new in Python 3.7.2.
     # but OrderedDict is a subclass of dict
     from typing import Callable
+    from typing import Dict
     from typing import Dict as OrderedDictType
     from typing import Iterable, List, Sequence, Tuple
 
@@ -29,10 +32,12 @@ else:
         from typing import Collection
     except ImportError:
         from typing import Container, Sized, TypeVar
+
         T_co = TypeVar('T_co', covariant=True)
 
         class Collection(Sized, Iterable[T_co], Container[T_co]):
             __slots__ = ()
+
 
 if sys.version_info.major == 3 and sys.version_info.minor >= 7:
     OrderedDict = dict
@@ -60,11 +65,11 @@ other_fields = (
 )
 
 
-def match_field(lines: Iterable[AnyStr],
-                searchfor: Union[AnyStr, Iterable[AnyStr], Pattern],
-                include_blank: bool = False,
-                ) -> Tuple[bool, int, int,
-                           Optional[AnyStr], Optional[List[AnyStr]]]:
+def match_field(
+    lines: Iterable[AnyStr],
+    searchfor: Union[AnyStr, Iterable[AnyStr], Pattern],
+    include_blank: bool = False,
+) -> Tuple[bool, int, int, Optional[AnyStr], Optional[List[AnyStr]]]:
     """Find fields in ``lines``.
 
     Args:
@@ -79,11 +84,8 @@ def match_field(lines: Iterable[AnyStr],
         Line index is left inclusive and right exclusive.
     """
 
-    found = False
-    starting_line_index = None
-    ending_line_index = None
-    matched = None
-    text = None
+    found, matched = False, None
+
     i = -1
     for i, line in enumerate(lines):
         # Only match once
@@ -95,7 +97,7 @@ def match_field(lines: Iterable[AnyStr],
                     found = True
                     starting_line_index = i
                     matched = match.group(0)
-            elif isinstance(searchfor, str) or isinstance(searchfor, bytes):
+            elif isinstance(searchfor, (str, bytes)):
                 if line.startswith(searchfor):
                     found = True
                     starting_line_index = i
@@ -115,22 +117,20 @@ def match_field(lines: Iterable[AnyStr],
         elif line and line.lstrip() == line or not line and not include_blank:
             ending_line_index = i
             break
-
-    # i is len(lines) - 1 if the loop goes completely
-    if ending_line_index is None:
-        if not found:
-            assert starting_line_index is None
-            starting_line_index = i + 1  # Set no matter found or not
+    else:
+        # i is len(lines) - 1 if the loop goes completely
+        #   or -1 if lines is empty
         ending_line_index = i + 1  # Set no matter found or not
+        if not found:
+            starting_line_index = i + 1  # Set no matter found or not
 
     assert (starting_line_index == ending_line_index) == (not found)
 
     # matched is `:...:`
     # should remove `:...: `
 
-    if found:
-        text = [line[len(matched) + 1:] for line in itertools.islice(
-            lines, starting_line_index, ending_line_index)]
+    text = [line[len(matched) + 1:] for line in itertools.islice(
+        lines, starting_line_index, ending_line_index)] if found else None
 
     return found, starting_line_index, ending_line_index, matched, text
 
@@ -152,8 +152,7 @@ def rfind_substring_in_paragraph(lines: Iterable[AnyStr],
                                  ) -> Tuple[bool, Optional[bool],
                                             Optional[Tuple[int, int]],
                                             Optional[Tuple[int, int]]]:
-    """
-    Find the last matching ``substr`` in ``lines``.
+    """Find the last matching ``substr`` in ``lines``.
 
     Args:
         substr:
@@ -192,8 +191,8 @@ def rfind_substring_in_paragraph(lines: Iterable[AnyStr],
                 # Empty string is not space
                 line_end = line[idx_end:].strip() if strip else line[idx_end:]
                 is_end = i == last_nonempty and not line_end
-                match_start = (i, idx_start)
-                match_end = (i, idx_end)
+                match_start = i, idx_start
+                match_end = i, idx_end
                 break
             last_isempty = last_isempty and strip and not line.strip()
     else:
@@ -235,15 +234,15 @@ def get_default_args(func: Callable,
 
 
 def find_arg(
-        lines: Collection[str], args: Sequence[str],
-        arg: str, incr: int, template: str = r':\S+ [\*\\]*{}:',
+    lines: Collection[str], args: Sequence[str], arg: str, incr: int,
+    template: str = r':\S+ [\*\\]*{}:',
 ) -> Tuple[Optional[int], Optional[str]]:
     """Finds the argument following ``arg`` before other fields.
 
     Args:
         incr:
             If it is 1, find the next arg.
-            If it is 0, fin the current arg.
+            If it is 0, find the current arg.
             Should be nonnegative.
 
     Returns:
@@ -261,8 +260,8 @@ def find_arg(
         # the regex pattern will treat \ as an escape indicator.
         nextarg = nextarg.lstrip(r'\*')
         found, start, _, matched = match_field(
-            lines,
-            re.compile(template.format(nextarg.replace('\\', '\\\\'))))[:4]
+            lines, re.compile(template.format(nextarg.replace('\\', '\\\\')))
+        )[:4]
         if found:
             return start, matched.split(' ')[0][1:]
 
@@ -272,29 +271,29 @@ def find_arg(
     for prevarg in reversed(args[:nextarg_idx]):
         prevarg = prevarg.lstrip(r'\*')
         found, start = match_field(
-            lines,
-            re.compile(template.format(prevarg.replace('\\', '\\\\'))))[:2]
+            lines, re.compile(template.format(prevarg.replace('\\', '\\\\')))
+        )[:2]
         if found:
             prev_line_idx = start
             break
 
     start = match_field(
-        lines[prev_line_idx:], [':{}'.format(field)
-                                for field in other_fields])[1]
+        lines[prev_line_idx:], [':{}'.format(field) for field in other_fields]
+    )[1]
 
     # Should return len(lines) if nextarg not found
     return start + prev_line_idx, None
 
 
-def find_next_arg(*args, **kwargs):
+def find_next_arg(*args, **kwargs) -> Tuple[Optional[int], Optional[str]]:
     return find_arg(*args, incr=1, **kwargs)
 
 
-def find_curr_arg(*args, **kwargs):
+def find_curr_arg(*args, **kwargs) -> Tuple[Optional[int], Optional[str]]:
     return find_arg(*args, incr=0, **kwargs)
 
 
-def isstaticmethod(obj):
+def isstaticmethod(obj: Any) -> bool:
     # https://stackoverflow.com/questions/3589311/
     # get-defining-class-of-unbound-method-object-in-python-3/
     # Modified from Yoel's Answer
@@ -309,12 +308,13 @@ def isstaticmethod(obj):
     # https://stackoverflow.com/questions/8727059/
     # python-check-if-method-is-static
     # Modified from Azmisov's Answer
-    return isinstance(inspect.getattr_static(
-        cls, mangle(cls, obj.__name__), None), staticmethod)
+    return isinstance(
+        inspect.getattr_static(cls, mangle(cls, obj.__name__), None),
+        staticmethod)
 
 
 def process_docstring(app: Sphinx, what: str, name: str, obj: Any,
-                      options: Any, lines: List[str]):
+                      options: Any, lines: List[str]) -> None:
     """Process docstring after Sphinx.
 
     See `autodoc-process-docstring <https://www.sphinx-doc.org/en/master/
@@ -356,9 +356,9 @@ def process_docstring(app: Sphinx, what: str, name: str, obj: Any,
         # TODO Test case: empty param
         searchfor = [':{} {}:'.format(field, argname)
                      for field in param_fields]
-        param_found, param_start, param_end, param_matched, param_text = \
+        param_found, param_start, param_end, param_matched, param_text = (
             match_field(lines, searchfor, include_blank=app.config.
-                        docstring_default_arg_after_directives)
+                        docstring_default_arg_after_directives))
 
         if param_found:
 
@@ -367,17 +367,17 @@ def process_docstring(app: Sphinx, what: str, name: str, obj: Any,
 
                 # Extracts all the flags
                 for head, tail in app.config.docstring_default_arg_flags:
-                    tail_found, is_end, t_start, _ = \
-                        rfind_substring_in_paragraph(
-                            param_text, tail, strip,
-                            app.config.
-                            docstring_default_arg_flags_multiline_matching)
+                    tail_found, is_end, t_start = rfind_substring_in_paragraph(
+                        param_text, tail, strip,
+                        app.config.
+                        docstring_default_arg_flags_multiline_matching)[:3]
                     if tail_found and is_end:
-                        head_found, _, h_start, h_end = \
+                        head_found, _, h_start, h_end = (
                             rfind_substring_in_paragraph(
                                 param_text, head, strip,
                                 app.config.
                                 docstring_default_arg_flags_multiline_matching)
+                        )
                         if head_found:
                             # what if default has \
                             if h_end[0] == t_start[0]:
@@ -390,9 +390,9 @@ def process_docstring(app: Sphinx, what: str, name: str, obj: Any,
                                     [param_text[t_start[0]][:t_start[1]]])
                             if strip:
                                 default = default.strip()
-                            lines[param_start + h_start[0]] = \
+                            lines[param_start + h_start[0]] = (
                                 lines[param_start + h_start[0]
-                                      ][:len(param_matched) + 1 + h_start[1]]
+                                      ][:len(param_matched) + 1 + h_start[1]])
                             del lines[param_start +
                                       h_start[0] + 1: param_end]
                             param_end = param_start + h_start[0] + 1
@@ -433,9 +433,10 @@ def process_docstring(app: Sphinx, what: str, name: str, obj: Any,
                         default))
 
         # Search for type
-        type_found, type_start, type_end, type_matched, type_text = \
+        type_found, type_start, type_end, type_matched, type_text = (
             match_field(lines, [':{} {}:'.format(field, argname)
                                 for field in type_fields], include_blank=False)
+        )
 
         if type_found:
             type_text = ' '.join(type_text)
@@ -464,7 +465,7 @@ def process_docstring(app: Sphinx, what: str, name: str, obj: Any,
                     'kw' if param_type in kw_fields else '', argname))
 
 
-def setup(app: Sphinx):
+def setup(app: Sphinx) -> Dict[str, bool]:
     app.add_config_value('always_document_default_args', False, 'html')
     app.add_config_value('docstring_default_arg_flags',
                          [('(Default: ', ')')], 'html')

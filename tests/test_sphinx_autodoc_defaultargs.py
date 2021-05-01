@@ -33,7 +33,7 @@ from sphinx_autodoc_defaultargs import (
 def test_match_field(encoding, args, result):
     assert match_field(MyIterable(), *args) == (False, 0, 0, None, None)
 
-    lines = MyIterable(textwrap.dedent('''\
+    lines = MyIterable(textwrap.dedent("""\
     :param x:
     :parameter y: foo
                  line
@@ -43,7 +43,7 @@ def test_match_field(encoding, args, result):
     {blank}
 
     :rtype: int
-    ''').format(blank=' \t\v').split('\n'))
+    """).format(blank=' \t\v').split('\n'))
 
     if result[0]:
         result[-1] = result[-1].split('\n')
@@ -54,9 +54,10 @@ def test_match_field(encoding, args, result):
 
     try:
         args[0] = re.compile(args[0])
-        assert match_field(lines, *args) == tuple(result)
     except TypeError:
         pass
+    else:
+        assert match_field(lines, *args) == tuple(result)
 
     if result[0]:
         result[3] = result[3].encode(encoding)
@@ -65,10 +66,9 @@ def test_match_field(encoding, args, result):
 
     try:
         args[0] = args0.encode(encoding)
-        assert match_field(lines, *args) == tuple(result)
     except AttributeError:
         args[0] = MyIterable(x.encode(encoding) for x in args0)
-        assert match_field(lines, *args) == tuple(result)
+    assert match_field(lines, *args) == tuple(result)
 
 
 # The length of 'utf-16' bytearrays doubles from the normal ones

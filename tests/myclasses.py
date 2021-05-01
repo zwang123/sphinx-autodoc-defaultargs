@@ -42,11 +42,10 @@ class __MyFunctor(object):
     exec('def __call__(self=None, x=None, {}y_=0): pass'.format(
         '' if sys.version_info[:2] < (3, 8) else '/, '))
 
+    # assume this class is not subclassed
     def __eq__(self, other):
-        try:
-            return isinstance(other, self.__class__)
-        except Exception:
-            return False
+        return True if (other.__class__ == self.__class__ ==
+                        __class__) else NotImplemented
 
     def __method(self=None):
         pass

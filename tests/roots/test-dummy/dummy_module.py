@@ -104,10 +104,10 @@ class TestClassWithArgs:
         pass
 
     # param
-    exec(textwrap.dedent('''\
+    exec(textwrap.dedent("""\
     def method_with_kwargs_as_kw_x_param(self, x=0, {}**kwargs):
         {}
-        pass'''.format(
+        pass""".format(
         '' if sys.version_info[:2] < (3, 8) else '/, ', repr(r"""
             Method docstring.
 
